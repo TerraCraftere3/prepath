@@ -10,6 +10,7 @@
 #include "Context.h"
 #include "Scene.h"
 #include "Camera.h"
+#include "Shader.h"
 
 namespace Prepath
 {
@@ -30,7 +31,7 @@ namespace Prepath
         void render(const Scene &scene, const RenderSettings &settings);
 
     private:
-        GLuint m_ShaderProgram;
+        std::shared_ptr<Shader> m_Shader;
     };
 
 }

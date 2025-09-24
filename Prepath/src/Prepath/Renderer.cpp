@@ -42,57 +42,13 @@ namespace Prepath
     }
 )";
 
-    GLuint compileShader(GLenum type, const char *source)
-    {
-        GLuint shader = glCreateShader(type);
-        glShaderSource(shader, 1, &source, nullptr);
-        glCompileShader(shader);
-
-        GLint success;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-            PREPATH_LOG_ERROR("Shader compilation error: {}", infoLog);
-        }
-
-        return shader;
-    }
-
-    GLuint createShaderProgram()
-    {
-        GLuint vertex = compileShader(GL_VERTEX_SHADER, vertexShaderSrc);
-        GLuint fragment = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSrc);
-
-        GLuint program = glCreateProgram();
-        glAttachShader(program, vertex);
-        glAttachShader(program, fragment);
-        glLinkProgram(program);
-
-        GLint success;
-        glGetProgramiv(program, GL_LINK_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetProgramInfoLog(program, 512, nullptr, infoLog);
-            PREPATH_LOG_ERROR("Shader linking error: {}", infoLog);
-        }
-
-        glDeleteShader(vertex);
-        glDeleteShader(fragment);
-
-        return program;
-    }
-
     Renderer::Renderer()
     {
-        m_ShaderProgram = createShaderProgram();
+        m_Shader = Shader::generateShader(vertexShaderSrc, fragmentShaderSrc);
     }
 
     Renderer::~Renderer()
     {
-        glDeleteProgram(m_ShaderProgram);
     }
 
     void Renderer::render(const Scene &scene, const RenderSettings &settings)
@@ -112,7 +68,7 @@ namespace Prepath
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(m_ShaderProgram);
+        m_Shader->bind();
         glm::mat4 view = settings.cam.getViewMatrix();
         glm::mat4 projection = settings.cam.getProjectionMatrix(float(settings.width) / settings.height);
         glm::mat4 model = glm::mat4(1.0f);
@@ -121,15 +77,12 @@ namespace Prepath
         model = glm::scale(model, glm::vec3(0.5f));
         model = glm::rotate(model, angle, glm::vec3(1.0f, 1.0f, 0.0f));
         glm::mat4 mvp = projection * view * model;
-        GLint loc = glGetUniformLocation(m_ShaderProgram, "uMVP");
-        glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mvp));
+        m_Shader->setUniformMat4f("uMVP", mvp);
 
         for (auto mesh : scene.getMeshes())
         {
             mesh->draw();
         }
-
-        glUseProgram(0);
 
         GLenum error;
         do
