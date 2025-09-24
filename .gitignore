@@ -11,3 +11,8 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 build
+
+Runtime/*.exe
+Runtime/*.dll
+Runtime/*.pdb
+Runtime/imgui.ini
