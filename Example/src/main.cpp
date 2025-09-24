@@ -24,21 +24,21 @@ int main()
     // ---- DEMO CONTEXT ----
     auto &ctx = Prepath::Context::getGlobalContext();
 
-    {
-        ctx.setLogger(Prepath::LogLevel::Info, [](const std::string &msg)
-                      { spdlog::info("{}", msg); });
-        ctx.setLogger(Prepath::LogLevel::Warn, [](const std::string &msg)
-                      { spdlog::warn("{}", msg); });
-        ctx.setLogger(Prepath::LogLevel::Error, [](const std::string &msg)
-                      { spdlog::error("{}", msg); });
-        ctx.setLogger(Prepath::LogLevel::Fatal, [](const std::string &msg)
-                      { spdlog::critical("{}", msg); });
-    }
+    ctx.setLogger(Prepath::LogLevel::Info, [](const std::string &msg)
+                  { spdlog::info("{}", msg); });
+    ctx.setLogger(Prepath::LogLevel::Warn, [](const std::string &msg)
+                  { spdlog::warn("{}", msg); });
+    ctx.setLogger(Prepath::LogLevel::Error, [](const std::string &msg)
+                  { spdlog::error("{}", msg); });
+    ctx.setLogger(Prepath::LogLevel::Fatal, [](const std::string &msg)
+                  { spdlog::critical("{}", msg); });
 
     // ---- DEMO SETUP ----
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
     auto settings = Prepath::RenderSettings();
+    settings.cam.Position = glm::vec3(0, 0, 3.0f);
+    settings.cam.updateCameraVectors();
 
     auto cube = Prepath::Mesh::generateCube();
     scene.addMesh(cube);

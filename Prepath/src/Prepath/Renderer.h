@@ -9,6 +9,7 @@
 
 #include "Context.h"
 #include "Scene.h"
+#include "Camera.h"
 
 namespace Prepath
 {
@@ -17,6 +18,7 @@ namespace Prepath
     {
         int width;
         int height;
+        Camera cam;
         RenderSettings();
     };
 

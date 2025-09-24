@@ -113,10 +113,8 @@ namespace Prepath
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(m_ShaderProgram);
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f),
-                                                float(settings.width) / settings.height,
-                                                0.1f, 100.0f);
-        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -3));
+        glm::mat4 view = settings.cam.getViewMatrix();
+        glm::mat4 projection = settings.cam.getProjectionMatrix(float(settings.width) / settings.height);
         glm::mat4 model = glm::mat4(1.0f);
 
         float angle = 1.0f;
@@ -132,11 +130,22 @@ namespace Prepath
         }
 
         glUseProgram(0);
+
+        GLenum error;
+        do
+        {
+            error = glGetError();
+            if (error != GL_NO_ERROR)
+            {
+                PREPATH_LOG_ERROR("OpenGL error: {}", error);
+            }
+        } while (error != GL_NO_ERROR);
     }
 
     RenderSettings::RenderSettings()
     {
         this->width = 800; // Default Values
         this->height = 600;
+        this->cam = Camera();
     }
 } // namespace Prepath
