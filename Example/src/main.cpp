@@ -24,15 +24,19 @@ int main()
     // ---- DEMO CODE ----
     auto &ctx = Prepath::Context::getGlobalContext();
 
-    ctx.setLogger(Prepath::LogLevel::Info, [](const std::string &msg)
-                  { spdlog::info("{}", msg); });
-    ctx.setLogger(Prepath::LogLevel::Warn, [](const std::string &msg)
-                  { spdlog::warn("{}", msg); });
-    ctx.setLogger(Prepath::LogLevel::Error, [](const std::string &msg)
-                  { spdlog::error("{}", msg); });
-    ctx.setLogger(Prepath::LogLevel::Fatal, [](const std::string &msg)
-                  { spdlog::critical("{}", msg); });
+    {
+        ctx.setLogger(Prepath::LogLevel::Info, [](const std::string &msg)
+                      { spdlog::info("{}", msg); });
+        ctx.setLogger(Prepath::LogLevel::Warn, [](const std::string &msg)
+                      { spdlog::warn("{}", msg); });
+        ctx.setLogger(Prepath::LogLevel::Error, [](const std::string &msg)
+                      { spdlog::error("{}", msg); });
+        ctx.setLogger(Prepath::LogLevel::Fatal, [](const std::string &msg)
+                      { spdlog::critical("{}", msg); });
+    }
 
+    auto renderer = Prepath::Renderer();
+    auto scene = Prepath::Scene();
     // ---- RUNTIME CODE ----
     while (!glfwWindowShouldClose(window))
     {
@@ -42,10 +46,15 @@ int main()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("Controls");
+        ImGui::SetNextWindowPos({20, 20});
+        ImGui::SetNextWindowBgAlpha(0.5f);
+        ImGui::Begin("Debug");
         ImGui::End();
 
         ImGui::Render();
+
+        // ---- Render Code ----
+        renderer.render(scene);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
