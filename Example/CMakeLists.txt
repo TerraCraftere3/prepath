@@ -12,7 +12,14 @@ target_include_directories(prepath_example PRIVATE
 )
 
 # Link internal libraries
-target_link_libraries(prepath_example PRIVATE glfw glad imgui glm prepath)
+target_link_libraries(prepath_example PRIVATE 
+    ${PREPATH_GLFW_NAME}     
+    ${PREPATH_GLAD_NAME}
+    ${PREPATH_GLM_NAME} 
+    ${PREPATH_IMGUI_NAME}  
+    prepath 
+    ${PREPATH_SPDLOG_NAME}
+    )
 if (MSVC)
     set_target_properties(prepath_example PROPERTIES
         LINK_FLAGS "/SUBSYSTEM:CONSOLE"

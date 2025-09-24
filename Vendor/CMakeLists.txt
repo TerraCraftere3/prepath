@@ -2,6 +2,7 @@
 add_subdirectory(Glad)
 add_subdirectory(Glfw)
 add_subdirectory(glm)
+add_subdirectory(spdlog)
 
 # ImGui
 file(GLOB IMGUI_SRC CONFIGURE_DEPENDS

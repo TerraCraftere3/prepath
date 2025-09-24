@@ -7,3 +7,6 @@
 [submodule "Vendor/imgui"]
 	path = Vendor/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "Vendor/spdlog"]
+	path = Vendor/spdlog
+	url = https://github.com/gabime/spdlog

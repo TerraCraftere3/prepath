@@ -2,11 +2,12 @@ cmake_minimum_required(VERSION 4.0)
 
 # ---- Options ----
 option(PREPATH_BUILD_EXAMPLES "Build example executables" ON)
-option(PREPATH_BUILD_LIBRARIES "Build libraries like glad, glfw, imgui and glm" ON)
+option(PREPATH_BUILD_LIBRARIES "Build libraries like glad, glfw, imgui, spdlog and glm" ON)
 set(PREPATH_GLAD_NAME "glad" CACHE STRING "Name of the glad target to link against")
 set(PREPATH_IMGUI_NAME "imgui" CACHE STRING "Name of the imgui target to link against")
 set(PREPATH_GLFW_NAME "glfw" CACHE STRING "Name of the glfw target to link against")
 set(PREPATH_GLM_NAME "glm" CACHE STRING "Name of the glm target to link against")
+set(PREPATH_SPDLOG_NAME "spdlog" CACHE STRING "Name of the spdlog target to link against")
 
 # ---- Defaults ----
 project(root LANGUAGES C CXX)
