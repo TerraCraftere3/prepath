@@ -21,7 +21,7 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    // ---- DEMO CODE ----
+    // ---- DEMO CONTEXT ----
     auto &ctx = Prepath::Context::getGlobalContext();
 
     {
@@ -35,12 +35,18 @@ int main()
                       { spdlog::critical("{}", msg); });
     }
 
+    // ---- DEMO SETUP ----
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
+    auto settings = Prepath::RenderSettings();
+
+    auto cube = Prepath::Mesh::generateCube();
+    scene.addMesh(cube);
     // ---- RUNTIME CODE ----
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
+        glfwGetWindowSize(window, &settings.width, &settings.height);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -54,7 +60,7 @@ int main()
         ImGui::Render();
 
         // ---- Render Code ----
-        renderer.render(scene);
+        renderer.render(scene, settings);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);

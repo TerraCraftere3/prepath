@@ -5,8 +5,11 @@
 #include <memory>
 #include <mutex>
 #include <format>
-#include "Context.h"
 #include <glad/glad.h>
+#include <vector>
+
+#include "Mesh.h"
+#include "Context.h"
 
 namespace Prepath
 {
@@ -15,6 +18,14 @@ namespace Prepath
     {
     public:
         Scene() = default;
+
+        // ---- Meshes ----
+        void addMesh(std::shared_ptr<Mesh> mesh) { m_Meshes.push_back(mesh); }
+        std::vector<std::shared_ptr<Mesh>> &getMeshes() { return m_Meshes; }
+        const std::vector<std::shared_ptr<Mesh>> &getMeshes() const { return m_Meshes; }
+
+    private:
+        std::vector<std::shared_ptr<Mesh>> m_Meshes;
     };
 
 }

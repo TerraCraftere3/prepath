@@ -13,11 +13,22 @@
 namespace Prepath
 {
 
+    struct RenderSettings
+    {
+        int width;
+        int height;
+        RenderSettings();
+    };
+
     class Renderer
     {
     public:
         Renderer();
-        void render(const Scene &scene);
+        ~Renderer();
+        void render(const Scene &scene, const RenderSettings &settings);
+
+    private:
+        GLuint m_ShaderProgram;
     };
 
 }
