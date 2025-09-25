@@ -9,6 +9,63 @@
 #include <assimp/postprocess.h>
 #include "Prepath/Lib.h"
 
+struct CameraController
+{
+    float moveSpeed = 5.0f;
+    glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    void updateVectors(const glm::vec3 &position, const glm::vec3 &target)
+    {
+        front = glm::normalize(target - position);
+        right = glm::normalize(glm::cross(front, worldUp));
+        up = glm::normalize(glm::cross(right, front));
+    }
+};
+
+CameraController cameraController;
+
+bool keys[1024] = {false};
+
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode)
+{
+    if (key >= 0 && key < 1024)
+    {
+        if (action == GLFW_PRESS)
+            keys[key] = true;
+        else if (action == GLFW_RELEASE)
+            keys[key] = false;
+    }
+
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+}
+
+void processInput(Prepath::RenderSettings &settings, float deltaTime)
+{
+    float velocity = cameraController.moveSpeed * deltaTime;
+
+    glm::vec3 target = settings.cam.Position + settings.cam.Front;
+    cameraController.updateVectors(settings.cam.Position, target);
+
+    if (keys[GLFW_KEY_W])
+        settings.cam.Position += cameraController.front * velocity;
+    if (keys[GLFW_KEY_S])
+        settings.cam.Position -= cameraController.front * velocity;
+    if (keys[GLFW_KEY_A])
+        settings.cam.Position -= cameraController.right * velocity;
+    if (keys[GLFW_KEY_D])
+        settings.cam.Position += cameraController.right * velocity;
+    if (keys[GLFW_KEY_SPACE])
+        settings.cam.Position += cameraController.worldUp * velocity;
+    if (keys[GLFW_KEY_LEFT_SHIFT])
+        settings.cam.Position -= cameraController.worldUp * velocity;
+
+    settings.cam.updateCameraVectors();
+}
+
 std::shared_ptr<Prepath::Mesh> loadModel(std::string path)
 {
     using namespace Prepath;
@@ -27,44 +84,40 @@ std::shared_ptr<Prepath::Mesh> loadModel(std::string path)
         return nullptr;
     }
 
-    aiMesh *mesh = scene->mMeshes[0]; // take first mesh for now
-
     std::vector<glm::vec3> positions;
     std::vector<glm::vec3> normals;
     std::vector<glm::vec2> texCoords;
 
-    positions.reserve(mesh->mNumVertices);
-    normals.reserve(mesh->mNumVertices);
-    texCoords.reserve(mesh->mNumVertices);
-
-    for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+    for (unsigned int m = 0; m < scene->mNumMeshes; m++)
     {
-        positions.emplace_back(
-            mesh->mVertices[i].x,
-            mesh->mVertices[i].y,
-            mesh->mVertices[i].z);
+        aiMesh *mesh = scene->mMeshes[m];
 
-        if (mesh->HasNormals())
+        for (unsigned int i = 0; i < mesh->mNumVertices; i++)
         {
-            normals.emplace_back(
-                mesh->mNormals[i].x,
-                mesh->mNormals[i].y,
-                mesh->mNormals[i].z);
-        }
-        else
-        {
-            normals.emplace_back(0.0f, 0.0f, 1.0f);
-        }
+            positions.emplace_back(mesh->mVertices[i].x,
+                                   mesh->mVertices[i].y,
+                                   mesh->mVertices[i].z);
 
-        if (mesh->HasTextureCoords(0))
-        {
-            texCoords.emplace_back(
-                mesh->mTextureCoords[0][i].x,
-                mesh->mTextureCoords[0][i].y);
-        }
-        else
-        {
-            texCoords.emplace_back(0.0f, 0.0f);
+            if (mesh->HasNormals())
+            {
+                normals.emplace_back(mesh->mNormals[i].x,
+                                     mesh->mNormals[i].y,
+                                     mesh->mNormals[i].z);
+            }
+            else
+            {
+                normals.emplace_back(0.0f, 0.0f, 1.0f);
+            }
+
+            if (mesh->HasTextureCoords(0))
+            {
+                texCoords.emplace_back(mesh->mTextureCoords[0][i].x,
+                                       mesh->mTextureCoords[0][i].y);
+            }
+            else
+            {
+                texCoords.emplace_back(0.0f, 0.0f);
+            }
         }
     }
 
@@ -77,6 +130,7 @@ int main()
     glfwInit();
     GLFWwindow *window = glfwCreateWindow(800, 600, "Prepath Demo", nullptr, nullptr);
     glfwMakeContextCurrent(window);
+    glfwSetKeyCallback(window, key_callback);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
     IMGUI_CHECKVERSION();
@@ -103,24 +157,25 @@ int main()
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
     auto settings = Prepath::RenderSettings();
-    settings.cam.Position = glm::vec3(0, 0, 6.0f);
+    settings.cam.Position = glm::vec3(0, 1.0f, 3.0f);
     settings.cam.updateCameraVectors();
 
     auto mat = Prepath::Material::createMaterial();
     mat->tint = glm::vec3(1.0f);
 
-    auto cube = loadModel("teapot.obj");
-    cube->modelMatrix = glm::scale(cube->modelMatrix, glm::vec3(0.5f));
-    cube->modelMatrix = glm::translate(cube->modelMatrix, glm::vec3(0.0f, -1.5f, 0.0f));
-    cube->material = mat;
+    auto sponza = loadModel("sponza.obj");
+    sponza->modelMatrix = glm::rotate(sponza->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
 
-    auto floor = Prepath::Mesh::generateQuad();
+    // auto sponza = Prepath::Mesh::generateCube(0.5f);
+    sponza->material = mat;
+
+    /*auto floor = Prepath::Mesh::generateQuad();
     floor->modelMatrix = glm::translate(floor->modelMatrix, glm::vec3(.0f, -1.0f, .0f));
     floor->modelMatrix = glm::scale(floor->modelMatrix, glm::vec3(50.0f));
-    floor->material = mat;
+    floor->material = mat;*/
 
-    scene.addMesh(cube);
-    scene.addMesh(floor);
+    scene.addMesh(sponza);
+    // scene.addMesh(floor);
     scene.lightDir = glm::vec3(1.0f, 1.0f, -1.0f);
 
     // ---- RUNTIME CODE ----
@@ -133,6 +188,7 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         glfwPollEvents();
+        processInput(settings, deltaTime);
         glfwGetWindowSize(window, &settings.width, &settings.height);
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -151,6 +207,9 @@ int main()
         ImGui::SeparatorText("Settings");
         ImGui::Checkbox("Wireframe", &settings.wireframe);
         ImGui::Checkbox("Culling", &settings.culling);
+        ImGui::SeparatorText("Camera");
+        ImGui::SliderFloat("Speed", &cameraController.moveSpeed, 0.1f, 20.0f);
+        ImGui::Text("Position: %.1f, %.1f, %.1f", settings.cam.Position.x, settings.cam.Position.y, settings.cam.Position.z);
         ImGui::SeparatorText("Shadows");
         ImGui::Image(renderer.getDepthTex(), ImVec2(256, 256), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
@@ -158,7 +217,6 @@ int main()
         ImGui::Render();
 
         // ---- Render Code ----
-        cube->modelMatrix = glm::rotate(cube->modelMatrix, deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
         renderer.render(scene, settings);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
