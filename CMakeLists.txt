@@ -8,6 +8,7 @@ set(PREPATH_IMGUI_NAME "imgui" CACHE STRING "Name of the imgui target to link ag
 set(PREPATH_GLFW_NAME "glfw" CACHE STRING "Name of the glfw target to link against")
 set(PREPATH_GLM_NAME "glm" CACHE STRING "Name of the glm target to link against")
 set(PREPATH_SPDLOG_NAME "spdlog" CACHE STRING "Name of the spdlog target to link against")
+set(PREPATH_ASSIMP_NAME "assimp" CACHE STRING "Name of the assimp target to link against")
 
 # ---- Defaults ----
 project(root LANGUAGES C CXX)

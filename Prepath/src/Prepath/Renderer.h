@@ -17,8 +17,10 @@ namespace Prepath
 
     struct RenderSettings
     {
-        int width;
-        int height;
+        int width = 800;
+        int height = 600;
+        bool wireframe = false;
+        bool culling = true;
         Camera cam;
         RenderSettings();
     };

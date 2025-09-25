@@ -10,3 +10,6 @@
 [submodule "Vendor/spdlog"]
 	path = Vendor/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "Vendor/assimp"]
+	path = Vendor/assimp
+	url = https://github.com/assimp/assimp

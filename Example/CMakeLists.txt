@@ -17,8 +17,9 @@ target_link_libraries(prepath_example PRIVATE
     ${PREPATH_GLAD_NAME}
     ${PREPATH_GLM_NAME} 
     ${PREPATH_IMGUI_NAME}  
-    prepath 
     ${PREPATH_SPDLOG_NAME}
+    ${PREPATH_ASSIMP_NAME}
+    prepath 
     )
 if (MSVC)
     set_target_properties(prepath_example PROPERTIES

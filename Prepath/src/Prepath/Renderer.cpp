@@ -18,21 +18,37 @@ namespace Prepath
 
     void Renderer::render(const Scene &scene, const RenderSettings &settings)
     {
+        // Depth
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
 
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        glFrontFace(GL_CCW);
+        // Culling
+        if (settings.culling)
+        {
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+            glFrontFace(GL_CCW);
+        }
+        else
+            glDisable(GL_CULL_FACE);
 
+        // Wireframe
+        if (settings.wireframe)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        else
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        // Blending
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+        // Start Frame
         glViewport(0, 0, settings.width, settings.height);
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // Frame
         m_Shader->bind();
         glm::mat4 view = settings.cam.getViewMatrix();
         m_Shader->setUniformMat4f("uView", view);
@@ -72,8 +88,5 @@ namespace Prepath
 
     RenderSettings::RenderSettings()
     {
-        this->width = 800; // Default Values
-        this->height = 600;
-        this->cam = Camera();
     }
 } // namespace Prepath
