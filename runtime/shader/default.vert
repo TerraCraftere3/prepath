@@ -6,10 +6,12 @@ layout(location = 2) in vec2 aTexCoord;
 uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uProjection;
+uniform mat4 uLightSpace;
 uniform mat3 uNormalMatrix;
 
 out vec3 WorldNormal;
 out vec3 WorldPos;
+out vec4 WorldPosLightSpace;
 out vec2 TexCoord;
 
 void main() {
@@ -20,4 +22,5 @@ void main() {
     WorldPos = vec3(uModel * vec4(aPos, 1.0));
     WorldNormal = normalize(uNormalMatrix * aNormal);
     TexCoord = aTexCoord;
+    WorldPosLightSpace = uLightSpace * vec4(WorldPos, 1.0);
 }

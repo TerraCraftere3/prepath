@@ -10,6 +10,23 @@ namespace Prepath
     Renderer::Renderer()
     {
         m_Shader = Shader::generateShader(PREPATH_READ_SHADER("default.vert").c_str(), PREPATH_READ_SHADER("default.frag").c_str());
+        m_DepthShader = Shader::generateShader(PREPATH_READ_SHADER("depth.vert").c_str(), PREPATH_READ_SHADER("depth.frag").c_str());
+
+        glGenFramebuffers(1, &m_DepthFBO);
+        glGenTextures(1, &m_DepthTex);
+        glBindTexture(GL_TEXTURE_2D, m_DepthTex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                     PREPATH_SHADOWMAP_SIZE, PREPATH_SHADOWMAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, m_DepthFBO);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthTex, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     Renderer::~Renderer()
@@ -26,34 +43,60 @@ namespace Prepath
         if (settings.culling)
         {
             glEnable(GL_CULL_FACE);
-            glCullFace(GL_BACK);
             glFrontFace(GL_CCW);
         }
         else
             glDisable(GL_CULL_FACE);
 
-        // Wireframe
-        if (settings.wireframe)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        else
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
         // Blending
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        // Start Frame
-        glViewport(0, 0, settings.width, settings.height);
+        glm::mat4 view = settings.cam.getViewMatrix();
+        glm::mat4 projection = settings.cam.getProjectionMatrix(float(settings.width) / settings.height);
 
+        glm::mat4 lightView = glm::lookAt(scene.lightDir,
+                                          glm::vec3(0.0f, 0.0f, 0.0f),
+                                          glm::vec3(0.0f, 1.0f, 0.0f));
+
+        float near_plane = 0.1f, far_plane = 20.0f;
+        glm::mat4 lightProjection = glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, near_plane, far_plane);
+        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+        // ---- SHADOWS ----
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glViewport(0, 0, PREPATH_SHADOWMAP_SIZE, PREPATH_SHADOWMAP_SIZE);
+            glBindFramebuffer(GL_FRAMEBUFFER, m_DepthFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glCullFace(GL_FRONT);
+            renderScene(scene, projection, view, lightSpaceMatrix, m_DepthShader);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        // ---- SCENE ----
+        {
+            if (settings.wireframe)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            else
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glViewport(0, 0, settings.width, settings.height);
+            glCullFace(GL_BACK);
+            renderScene(scene, projection, view, lightSpaceMatrix, m_Shader);
+        }
+    }
+
+    void Renderer::renderScene(const Scene &scene, const glm::mat4 &projection,
+                               const glm::mat4 &view, const glm::mat4 &lightSpace,
+                               std::shared_ptr<Shader> shader)
+    {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Frame
-        m_Shader->bind();
-        glm::mat4 view = settings.cam.getViewMatrix();
-        m_Shader->setUniformMat4f("uView", view);
-        glm::mat4 projection = settings.cam.getProjectionMatrix(float(settings.width) / settings.height);
-        m_Shader->setUniformMat4f("uProjection", projection);
+        shader->bind();
+        shader->setUniformMat4f("uView", view);             // View Matrix
+        shader->setUniformMat4f("uProjection", projection); // Projection Matrix
+        shader->setUniformMat4f("uLightSpace", lightSpace); // Light Space Matrix (LView * LProjection)
+        shader->setUniform3f("uLightDir", scene.lightDir);  // Light Dir [-1->1]
 
         m_Statistics.drawCallCount = 0;
         m_Statistics.triangleCount = 0;
@@ -61,13 +104,13 @@ namespace Prepath
 
         for (auto mesh : scene.getMeshes())
         {
-            m_Shader->setUniformMat4f("uModel", mesh->modelMatrix);
+            shader->setUniformMat4f("uModel", mesh->modelMatrix);
             glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(mesh->modelMatrix)));
-            m_Shader->setUniformMat3f("uNormalMatrix", normalMatrix);
+            shader->setUniformMat3f("uNormalMatrix", normalMatrix);
             if (mesh->material)
             {
                 auto mat = mesh->material;
-                m_Shader->setUniform3f("uTint", mat->tint);
+                shader->setUniform3f("uTint", mat->tint);
             }
             mesh->draw();
             m_Statistics.drawCallCount += mesh->getDrawCallCount();

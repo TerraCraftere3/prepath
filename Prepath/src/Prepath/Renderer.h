@@ -12,9 +12,10 @@
 #include "Camera.h"
 #include "Shader.h"
 
+#define PREPATH_SHADOWMAP_SIZE 1024 * 4
+
 namespace Prepath
 {
-
     struct RenderSettings
     {
         int width = 800;
@@ -38,11 +39,16 @@ namespace Prepath
         Renderer();
         ~Renderer();
         void render(const Scene &scene, const RenderSettings &settings);
+        void renderScene(const Scene &scene, const glm::mat4 &projection, const glm::mat4 &view, const glm::mat4 &lightSpace, std::shared_ptr<Shader> shader);
+        unsigned int getDepthTex() { return m_DepthTex; }
         RenderStatistics getStatistics() { return m_Statistics; }
 
     private:
         RenderStatistics m_Statistics;
         std::shared_ptr<Shader> m_Shader;
+        std::shared_ptr<Shader> m_DepthShader;
+        unsigned int m_DepthFBO;
+        unsigned int m_DepthTex;
     };
 
 }

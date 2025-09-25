@@ -103,7 +103,7 @@ int main()
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
     auto settings = Prepath::RenderSettings();
-    settings.cam.Position = glm::vec3(0, 0, 3.0f);
+    settings.cam.Position = glm::vec3(0, 0, 6.0f);
     settings.cam.updateCameraVectors();
 
     auto mat = Prepath::Material::createMaterial();
@@ -116,11 +116,12 @@ int main()
 
     auto floor = Prepath::Mesh::generateQuad();
     floor->modelMatrix = glm::translate(floor->modelMatrix, glm::vec3(.0f, -1.0f, .0f));
-    floor->modelMatrix = glm::scale(floor->modelMatrix, glm::vec3(10.0f));
+    floor->modelMatrix = glm::scale(floor->modelMatrix, glm::vec3(50.0f));
     floor->material = mat;
 
     scene.addMesh(cube);
     scene.addMesh(floor);
+    scene.lightDir = glm::vec3(1.0f, 1.0f, -1.0f);
 
     // ---- RUNTIME CODE ----
     float lastFrame = 0.0f;
@@ -150,6 +151,8 @@ int main()
         ImGui::SeparatorText("Settings");
         ImGui::Checkbox("Wireframe", &settings.wireframe);
         ImGui::Checkbox("Culling", &settings.culling);
+        ImGui::SeparatorText("Shadows");
+        ImGui::Image(renderer.getDepthTex(), ImVec2(256, 256), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         ImGui::Render();
