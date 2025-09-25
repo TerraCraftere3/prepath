@@ -42,7 +42,13 @@ int main()
 
     auto cube = Prepath::Mesh::generateCube();
     cube->modelMatrix = glm::scale(cube->modelMatrix, glm::vec3(0.5f));
+
+    auto floor = Prepath::Mesh::generateQuad();
+    floor->modelMatrix = glm::translate(floor->modelMatrix, glm::vec3(.0f, -1.0f, .0f));
+    floor->modelMatrix = glm::scale(floor->modelMatrix, glm::vec3(10.0f));
+
     scene.addMesh(cube);
+    scene.addMesh(floor);
 
     // ---- RUNTIME CODE ----
     float lastFrame = 0.0f;
@@ -63,6 +69,12 @@ int main()
         ImGui::SetNextWindowPos({20, 20});
         ImGui::SetNextWindowBgAlpha(0.5f);
         ImGui::Begin("Debug");
+        ImGui::SeparatorText("Statistics");
+        auto stats = renderer.getStatistics();
+        ImGui::Text("Draw Calls: %d", stats.drawCallCount);
+        ImGui::Text("Triangles: %d", stats.triangleCount);
+        ImGui::Text("Vertices: %d", stats.vertexCount);
+        ImGui::Text("Delta Time: %.3f ms", deltaTime);
         ImGui::End();
 
         ImGui::Render();

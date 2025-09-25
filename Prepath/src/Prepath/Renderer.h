@@ -23,14 +23,23 @@ namespace Prepath
         RenderSettings();
     };
 
+    struct RenderStatistics
+    {
+        int drawCallCount = 0;
+        int vertexCount = 0;
+        int triangleCount = 0;
+    };
+
     class Renderer
     {
     public:
         Renderer();
         ~Renderer();
         void render(const Scene &scene, const RenderSettings &settings);
+        RenderStatistics getStatistics() { return m_Statistics; }
 
     private:
+        RenderStatistics m_Statistics;
         std::shared_ptr<Shader> m_Shader;
     };
 

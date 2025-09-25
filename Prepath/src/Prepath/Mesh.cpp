@@ -81,6 +81,8 @@ namespace Prepath
         }
 
         vertexCount = static_cast<GLsizei>(positions.size());
+        triangleCount = vertexCount / 3.0;
+        drawCallCount = 1;
         std::vector<Vertex> vertices(vertexCount);
 
         for (size_t i = 0; i < vertexCount; ++i)
@@ -217,7 +219,12 @@ namespace Prepath
     std::shared_ptr<Mesh> Mesh::generateQuad(float width, float height)
     {
         std::vector<glm::vec3> positions = {
-            {-width / 2, 0.0f, -height / 2}, {width / 2, 0.0f, -height / 2}, {width / 2, 0.0f, height / 2}, {-width / 2, 0.0f, -height / 2}, {width / 2, 0.0f, height / 2}, {-width / 2, 0.0f, height / 2}};
+            {-width / 2, 0.0f, -height / 2},
+            {width / 2, 0.0f, -height / 2},
+            {-width / 2, 0.0f, height / 2},
+            {width / 2, 0.0f, -height / 2},
+            {width / 2, 0.0f, height / 2},
+            {-width / 2, 0.0f, height / 2}};
 
         std::vector<glm::vec3> normals(6, {0.0f, 1.0f, 0.0f}); // all up
 

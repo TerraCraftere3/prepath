@@ -24,13 +24,18 @@ namespace Prepath
 
         void draw() const;
 
-        // Static method to create a mesh
+        // ---- Creation Methods ----
         static std::shared_ptr<Mesh> generateMesh(
             const std::vector<glm::vec3> &positions,
             const std::vector<glm::vec3> &normals,
             const std::vector<glm::vec2> &texCoords);
         static std::shared_ptr<Mesh> generateCube(float size = 1.0f);
         static std::shared_ptr<Mesh> generateQuad(float width = 1.0f, float height = 1.0f);
+
+        // ---- Statistics Methods ----
+        GLsizei getVertexCount() const { return vertexCount; }
+        GLsizei getTriangleCount() const { return triangleCount; }
+        GLsizei getDrawCallCount() const { return drawCallCount; }
 
     public:
         glm::mat4 modelMatrix = glm::mat4(1.0f);
@@ -39,6 +44,8 @@ namespace Prepath
         GLuint VAO = 0;
         GLuint VBO = 0;
         GLsizei vertexCount = 0;
+        GLsizei triangleCount = 0;
+        GLsizei drawCallCount = 0;
 
         void setupMesh(
             const std::vector<glm::vec3> &positions,

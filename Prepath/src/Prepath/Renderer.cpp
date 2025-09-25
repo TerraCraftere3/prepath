@@ -56,9 +56,9 @@ namespace Prepath
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
 
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        glFrontFace(GL_CCW);
+        glDisable(GL_CULL_FACE);
+        /*glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);*/
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -72,11 +72,18 @@ namespace Prepath
         glm::mat4 view = settings.cam.getViewMatrix();
         glm::mat4 projection = settings.cam.getProjectionMatrix(float(settings.width) / settings.height);
 
+        m_Statistics.drawCallCount = 0;
+        m_Statistics.triangleCount = 0;
+        m_Statistics.vertexCount = 0;
+
         for (auto mesh : scene.getMeshes())
         {
             glm::mat4 mvp = projection * view * mesh->modelMatrix;
             m_Shader->setUniformMat4f("uMVP", mvp);
             mesh->draw();
+            m_Statistics.drawCallCount += mesh->getDrawCallCount();
+            m_Statistics.triangleCount += mesh->getTriangleCount();
+            m_Statistics.vertexCount += mesh->getVertexCount();
         }
 
         GLenum error;
