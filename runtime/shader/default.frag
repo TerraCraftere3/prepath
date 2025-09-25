@@ -32,8 +32,10 @@ float ShadowCalculationPCF(vec4 fragPosLightSpace) {
 void main() {
   vec3 color = WorldNormal * 0.5 + 0.5;
   float shadow = ShadowCalculationPCF(WorldPosLightSpace);
-  float ambientOcclusion = dot(WorldNormal, vec3(0, 1, 0)) * 0.5 + 0.5;
-  vec3 ambient = vec3(0.1) * ambientOcclusion;
-  vec3 lighting = (ambient + (1.0 - shadow)) * color;
+  vec3 directLight = max(dot(WorldNormal, uLightDir), 0.0) * (1.0 - shadow) * color;
+  vec3 indirectLight = 0.2 * (1.0 - max(dot(WorldNormal, uLightDir), 0.0)) * color;
+  vec3 ambient = 0.05 * color;
+
+  vec3 lighting = ambient + directLight + indirectLight;
   FragColor = vec4(lighting, 1.0);
 }
