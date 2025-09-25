@@ -22,6 +22,7 @@ namespace Prepath
         int height = 600;
         bool wireframe = false;
         bool culling = true;
+        bool bounds = false;
         Camera cam;
         RenderSettings();
     };
@@ -47,6 +48,8 @@ namespace Prepath
         RenderStatistics m_Statistics;
         std::shared_ptr<Shader> m_Shader;
         std::shared_ptr<Shader> m_DepthShader;
+        std::shared_ptr<Shader> m_BoundsShader;
+        std::shared_ptr<Mesh> m_BoundsMesh;
         unsigned int m_DepthFBO;
         unsigned int m_DepthTex;
     };

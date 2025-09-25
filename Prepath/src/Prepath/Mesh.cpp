@@ -85,12 +85,21 @@ namespace Prepath
         drawCallCount = 1;
         std::vector<Vertex> vertices(vertexCount);
 
+        glm::vec3 minBound(FLT_MAX);
+        glm::vec3 maxBound(-FLT_MAX);
+
         for (size_t i = 0; i < vertexCount; ++i)
         {
             vertices[i].position = positions[i];
             vertices[i].normal = normals[i];
             vertices[i].texCoord = texCoords[i];
+
+            minBound = glm::min(minBound, positions[i]);
+            maxBound = glm::max(maxBound, positions[i]);
         }
+
+        this->bounds.min = minBound;
+        this->bounds.max = maxBound;
 
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);

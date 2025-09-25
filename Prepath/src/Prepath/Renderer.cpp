@@ -11,6 +11,9 @@ namespace Prepath
     {
         m_Shader = Shader::generateShader(PREPATH_READ_SHADER("default.vert").c_str(), PREPATH_READ_SHADER("default.frag").c_str());
         m_DepthShader = Shader::generateShader(PREPATH_READ_SHADER("depth.vert").c_str(), PREPATH_READ_SHADER("depth.frag").c_str());
+        m_BoundsShader = Shader::generateShader(PREPATH_READ_SHADER("bounds.vert").c_str(), PREPATH_READ_SHADER("bounds.frag").c_str());
+
+        m_BoundsMesh = Mesh::generateCube(0.5f);
 
         glGenFramebuffers(1, &m_DepthFBO);
         glGenTextures(1, &m_DepthTex);
@@ -83,6 +86,38 @@ namespace Prepath
             glViewport(0, 0, settings.width, settings.height);
             glCullFace(GL_BACK);
             renderScene(scene, projection, view, lightSpaceMatrix, m_Shader);
+        }
+
+        // ---- BOUNDS ----
+        if (settings.bounds)
+        {
+            m_BoundsShader->bind();
+            m_BoundsShader->setUniformMat4f("uView", view);             // View Matrix
+            m_BoundsShader->setUniformMat4f("uProjection", projection); // Projection Matrix
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glDisable(GL_CULL_FACE);
+            glDisable(GL_DEPTH_TEST);
+            for (auto mesh : scene.getMeshes())
+            {
+                const AABB &bounds = mesh->bounds;
+
+                glm::vec3 worldMin = glm::vec3(mesh->modelMatrix * glm::vec4(mesh->bounds.min, 1.0f));
+                glm::vec3 worldMax = glm::vec3(mesh->modelMatrix * glm::vec4(mesh->bounds.max, 1.0f));
+
+                glm::vec3 center = (worldMin + worldMax) * 0.5f;
+                glm::vec3 size = (worldMax - worldMin);
+
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), center) * glm::scale(glm::mat4(1.0f), size);
+                m_BoundsShader->setUniformMat4f("uModel", model);
+
+                m_BoundsMesh->draw();
+
+                m_Statistics.drawCallCount += m_BoundsMesh->getDrawCallCount();
+                m_Statistics.triangleCount += m_BoundsMesh->getTriangleCount();
+                m_Statistics.vertexCount += m_BoundsMesh->getVertexCount();
+            }
+            glEnable(GL_DEPTH_TEST);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
     }
 

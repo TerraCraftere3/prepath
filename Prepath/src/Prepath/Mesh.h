@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 
 #include "Material.h"
+#include "AABB.h"
 
 namespace Prepath
 {
@@ -40,6 +41,7 @@ namespace Prepath
         GLsizei getDrawCallCount() const { return drawCallCount; }
 
     public:
+        AABB bounds;
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         std::shared_ptr<Material> material;
 

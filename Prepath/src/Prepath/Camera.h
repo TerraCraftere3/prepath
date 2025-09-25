@@ -38,7 +38,7 @@ namespace Prepath
             return glm::lookAt(Position, Position + Front, Up);
         }
 
-        glm::mat4 getProjectionMatrix(float aspect, float nearPlane = 0.1f, float farPlane = 100.0f) const
+        glm::mat4 getProjectionMatrix(float aspect, float nearPlane = 0.1f, float farPlane = 512.0f) const
         {
             return glm::perspective(glm::radians(Zoom), aspect, nearPlane, farPlane);
         }

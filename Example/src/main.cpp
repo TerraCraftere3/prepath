@@ -157,7 +157,7 @@ int main()
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
     auto settings = Prepath::RenderSettings();
-    settings.cam.Position = glm::vec3(0, 1.0f, 3.0f);
+    settings.cam.Position = glm::vec3(0, 3.0f, 4.0f);
     settings.cam.updateCameraVectors();
 
     auto mat = Prepath::Material::createMaterial();
@@ -165,17 +165,15 @@ int main()
 
     auto sponza = loadModel("sponza.obj");
     sponza->modelMatrix = glm::rotate(sponza->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
-
-    // auto sponza = Prepath::Mesh::generateCube(0.5f);
     sponza->material = mat;
-
-    /*auto floor = Prepath::Mesh::generateQuad();
-    floor->modelMatrix = glm::translate(floor->modelMatrix, glm::vec3(.0f, -1.0f, .0f));
-    floor->modelMatrix = glm::scale(floor->modelMatrix, glm::vec3(50.0f));
-    floor->material = mat;*/
-
     scene.addMesh(sponza);
-    // scene.addMesh(floor);
+
+    auto cube = Prepath::Mesh::generateCube();
+    cube->modelMatrix = glm::scale(cube->modelMatrix, glm::vec3(1.0f));
+    cube->modelMatrix = glm::translate(cube->modelMatrix, glm::vec3(0.0f, 1.5f, 0.0f));
+    cube->material = mat;
+    scene.addMesh(cube);
+
     scene.lightDir = glm::vec3(1.0f, 1.0f, -1.0f);
 
     // ---- RUNTIME CODE ----
@@ -205,7 +203,8 @@ int main()
         ImGui::Text("Vertices: %d", stats.vertexCount);
         ImGui::Text("Delta Time: %.3f ms", deltaTime);
         ImGui::SeparatorText("Settings");
-        ImGui::Checkbox("Wireframe", &settings.wireframe);
+        ImGui::Checkbox("Display Wireframe", &settings.wireframe);
+        ImGui::Checkbox("Display Bounds", &settings.bounds);
         ImGui::Checkbox("Culling", &settings.culling);
         ImGui::SeparatorText("Camera");
         ImGui::SliderFloat("Speed", &cameraController.moveSpeed, 0.1f, 20.0f);
