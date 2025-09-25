@@ -44,6 +44,13 @@ jobs:
       with:
         cmake-version: "latest"
 
+    - name: Install dependencies on Linux
+  if: runner.os == 'Linux'
+  run: |
+    sudo apt-get update
+    sudo apt-get install -y wayland-protocols
+
+
     - name: Set reusable strings
       id: strings
       shell: bash
