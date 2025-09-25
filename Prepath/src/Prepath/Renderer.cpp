@@ -16,8 +16,9 @@ namespace Prepath
     uniform mat4 uModel;
     uniform mat4 uView;
     uniform mat4 uProjection;
+    uniform mat3 uNormalMatrix;
 
-    out vec3 Normal;
+    out vec3 WorldNormal;
     out vec3 WorldPos;
     out vec2 TexCoord;
 
@@ -28,7 +29,7 @@ namespace Prepath
         gl_Position = uMVP * vec4(aPos, 1.0);
 
         WorldPos = vec3(uModel * vec4(aPos, 1.0));
-        Normal = mat3(transpose(inverse(uModel))) * aNormal;
+        WorldNormal = normalize(uNormalMatrix * aNormal);
         TexCoord = aTexCoord;
     }
 )";
@@ -39,14 +40,14 @@ namespace Prepath
 
     uniform vec3 uTint;
 
-    in vec3 Normal;    
+    in vec3 WorldNormal;    
     in vec3 WorldPos;
     in vec2 TexCoord;
 
     void main()
     {
         vec3 color = uTint; 
-        FragColor = vec4(color, 1.0);
+        FragColor = vec4(WorldNormal * 0.5 + 0.5, 1.0);
     }
 )";
 
@@ -64,9 +65,9 @@ namespace Prepath
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
 
-        glDisable(GL_CULL_FACE);
-        /*glCullFace(GL_BACK);
-        glFrontFace(GL_CCW);*/
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -89,6 +90,8 @@ namespace Prepath
         for (auto mesh : scene.getMeshes())
         {
             m_Shader->setUniformMat4f("uModel", mesh->modelMatrix);
+            glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(mesh->modelMatrix)));
+            m_Shader->setUniformMat3f("uNormalMatrix", normalMatrix);
             if (mesh->material)
             {
                 auto mat = mesh->material;

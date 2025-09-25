@@ -220,16 +220,22 @@ namespace Prepath
     {
         std::vector<glm::vec3> positions = {
             {-width / 2, 0.0f, -height / 2},
-            {width / 2, 0.0f, -height / 2},
             {-width / 2, 0.0f, height / 2},
             {width / 2, 0.0f, -height / 2},
-            {width / 2, 0.0f, height / 2},
-            {-width / 2, 0.0f, height / 2}};
 
-        std::vector<glm::vec3> normals(6, {0.0f, 1.0f, 0.0f}); // all up
+            {width / 2, 0.0f, -height / 2},
+            {-width / 2, 0.0f, height / 2},
+            {width / 2, 0.0f, height / 2}};
+
+        std::vector<glm::vec3> normals(6, {0.0f, 1.0f, 0.0f});
 
         std::vector<glm::vec2> texCoords = {
-            {0, 0}, {1, 0}, {1, 1}, {0, 0}, {1, 1}, {0, 1}};
+            {0, 0},
+            {0, 1},
+            {1, 0},
+            {1, 0},
+            {0, 1},
+            {1, 1}};
 
         return generateMesh(positions, normals, texCoords);
     }
