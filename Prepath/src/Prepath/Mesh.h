@@ -5,6 +5,8 @@
 #include <glm/glm.hpp>
 #include <glad/glad.h>
 
+#include "Material.h"
+
 namespace Prepath
 {
 
@@ -39,6 +41,7 @@ namespace Prepath
 
     public:
         glm::mat4 modelMatrix = glm::mat4(1.0f);
+        std::shared_ptr<Material> material;
 
     private:
         GLuint VAO = 0;

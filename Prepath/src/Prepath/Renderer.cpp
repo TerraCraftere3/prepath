@@ -13,17 +13,22 @@ namespace Prepath
     layout(location = 1) in vec3 aNormal;
     layout(location = 2) in vec2 aTexCoord;
 
-    uniform mat4 uMVP;
+    uniform mat4 uModel;
+    uniform mat4 uView;
+    uniform mat4 uProjection;
 
     out vec3 Normal;
-    out vec3 Position;
+    out vec3 WorldPos;
     out vec2 TexCoord;
 
     void main()
     {
+        mat4 uMVP = uProjection * uView * uModel;
+
         gl_Position = uMVP * vec4(aPos, 1.0);
-        Normal = aNormal;
-        Position = aPos;
+
+        WorldPos = vec3(uModel * vec4(aPos, 1.0));
+        Normal = mat3(transpose(inverse(uModel))) * aNormal;
         TexCoord = aTexCoord;
     }
 )";
@@ -32,13 +37,16 @@ namespace Prepath
     #version 330 core
     out vec4 FragColor;
 
+    uniform vec3 uTint;
+
     in vec3 Normal;    
-    in vec3 Position;
+    in vec3 WorldPos;
     in vec2 TexCoord;
 
     void main()
     {
-        FragColor = vec4(TexCoord, 0.0, 1.0);
+        vec3 color = uTint; 
+        FragColor = vec4(color, 1.0);
     }
 )";
 
@@ -70,7 +78,9 @@ namespace Prepath
 
         m_Shader->bind();
         glm::mat4 view = settings.cam.getViewMatrix();
+        m_Shader->setUniformMat4f("uView", view);
         glm::mat4 projection = settings.cam.getProjectionMatrix(float(settings.width) / settings.height);
+        m_Shader->setUniformMat4f("uProjection", projection);
 
         m_Statistics.drawCallCount = 0;
         m_Statistics.triangleCount = 0;
@@ -78,8 +88,12 @@ namespace Prepath
 
         for (auto mesh : scene.getMeshes())
         {
-            glm::mat4 mvp = projection * view * mesh->modelMatrix;
-            m_Shader->setUniformMat4f("uMVP", mvp);
+            m_Shader->setUniformMat4f("uModel", mesh->modelMatrix);
+            if (mesh->material)
+            {
+                auto mat = mesh->material;
+                m_Shader->setUniform3f("uTint", mat->tint);
+            }
             mesh->draw();
             m_Statistics.drawCallCount += mesh->getDrawCallCount();
             m_Statistics.triangleCount += mesh->getTriangleCount();

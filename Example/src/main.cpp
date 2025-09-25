@@ -40,12 +40,17 @@ int main()
     settings.cam.Position = glm::vec3(0, 0, 3.0f);
     settings.cam.updateCameraVectors();
 
+    auto mat = Prepath::Material::createMaterial();
+    mat->tint = glm::vec3(1.0f);
+
     auto cube = Prepath::Mesh::generateCube();
     cube->modelMatrix = glm::scale(cube->modelMatrix, glm::vec3(0.5f));
+    cube->material = mat;
 
     auto floor = Prepath::Mesh::generateQuad();
     floor->modelMatrix = glm::translate(floor->modelMatrix, glm::vec3(.0f, -1.0f, .0f));
     floor->modelMatrix = glm::scale(floor->modelMatrix, glm::vec3(10.0f));
+    floor->material = mat;
 
     scene.addMesh(cube);
     scene.addMesh(floor);
