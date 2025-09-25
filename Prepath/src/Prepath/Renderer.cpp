@@ -71,16 +71,11 @@ namespace Prepath
         m_Shader->bind();
         glm::mat4 view = settings.cam.getViewMatrix();
         glm::mat4 projection = settings.cam.getProjectionMatrix(float(settings.width) / settings.height);
-        glm::mat4 model = glm::mat4(1.0f);
-
-        float angle = 1.0f;
-        model = glm::scale(model, glm::vec3(0.5f));
-        model = glm::rotate(model, angle, glm::vec3(1.0f, 1.0f, 0.0f));
-        glm::mat4 mvp = projection * view * model;
-        m_Shader->setUniformMat4f("uMVP", mvp);
 
         for (auto mesh : scene.getMeshes())
         {
+            glm::mat4 mvp = projection * view * mesh->modelMatrix;
+            m_Shader->setUniformMat4f("uMVP", mvp);
             mesh->draw();
         }
 

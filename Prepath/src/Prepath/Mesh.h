@@ -32,6 +32,9 @@ namespace Prepath
         static std::shared_ptr<Mesh> generateCube(float size = 1.0f);
         static std::shared_ptr<Mesh> generateQuad(float width = 1.0f, float height = 1.0f);
 
+    public:
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
+
     private:
         GLuint VAO = 0;
         GLuint VBO = 0;

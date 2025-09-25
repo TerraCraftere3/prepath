@@ -41,10 +41,18 @@ int main()
     settings.cam.updateCameraVectors();
 
     auto cube = Prepath::Mesh::generateCube();
+    cube->modelMatrix = glm::scale(cube->modelMatrix, glm::vec3(0.5f));
     scene.addMesh(cube);
+
     // ---- RUNTIME CODE ----
+    float lastFrame = 0.0f;
+    float deltaTime = 0.0f;
+
     while (!glfwWindowShouldClose(window))
     {
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
         glfwPollEvents();
         glfwGetWindowSize(window, &settings.width, &settings.height);
 
@@ -60,6 +68,7 @@ int main()
         ImGui::Render();
 
         // ---- Render Code ----
+        cube->modelMatrix = glm::rotate(cube->modelMatrix, deltaTime, glm::vec3(1.0f, 1.0f, 0.0f));
         renderer.render(scene, settings);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
