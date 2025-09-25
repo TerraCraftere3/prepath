@@ -22,7 +22,7 @@ namespace Prepath
 
     void Context::log(LogLevel level, const std::string &msg)
     {
-        std::lock_guard<std::mutex> lock(m_Mutex);
+        std::lock_guard<std::mutex> lock(m_LoggerMutex);
         if (m_Loggers[level])
         {
             m_Loggers[level](msg);

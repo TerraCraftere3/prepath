@@ -7,53 +7,9 @@
 
 namespace Prepath
 {
-    const char *vertexShaderSrc = R"(
-    #version 330 core
-    layout(location = 0) in vec3 aPos;
-    layout(location = 1) in vec3 aNormal;
-    layout(location = 2) in vec2 aTexCoord;
-
-    uniform mat4 uModel;
-    uniform mat4 uView;
-    uniform mat4 uProjection;
-    uniform mat3 uNormalMatrix;
-
-    out vec3 WorldNormal;
-    out vec3 WorldPos;
-    out vec2 TexCoord;
-
-    void main()
-    {
-        mat4 uMVP = uProjection * uView * uModel;
-
-        gl_Position = uMVP * vec4(aPos, 1.0);
-
-        WorldPos = vec3(uModel * vec4(aPos, 1.0));
-        WorldNormal = normalize(uNormalMatrix * aNormal);
-        TexCoord = aTexCoord;
-    }
-)";
-
-    const char *fragmentShaderSrc = R"(
-    #version 330 core
-    out vec4 FragColor;
-
-    uniform vec3 uTint;
-
-    in vec3 WorldNormal;    
-    in vec3 WorldPos;
-    in vec2 TexCoord;
-
-    void main()
-    {
-        vec3 color = uTint; 
-        FragColor = vec4(WorldNormal * 0.5 + 0.5, 1.0);
-    }
-)";
-
     Renderer::Renderer()
     {
-        m_Shader = Shader::generateShader(vertexShaderSrc, fragmentShaderSrc);
+        m_Shader = Shader::generateShader(PREPATH_READ_SHADER("default.vert").c_str(), PREPATH_READ_SHADER("default.frag").c_str());
     }
 
     Renderer::~Renderer()

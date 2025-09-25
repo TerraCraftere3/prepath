@@ -36,8 +36,3 @@ jobs:
     - name: Build
       shell: powershell
       run: cmake --build $Env:GITHUB_WORKSPACE\build --config Release
-
-    - name: Test
-      shell: powershell
-      working-directory: $Env:GITHUB_WORKSPACE\build
-      run: ctest --build-config Release

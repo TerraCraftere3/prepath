@@ -32,6 +32,7 @@ int main()
                   { spdlog::error("{}", msg); });
     ctx.setLogger(Prepath::LogLevel::Fatal, [](const std::string &msg)
                   { spdlog::critical("{}", msg); });
+    ctx.setShaderPath("shader");
 
     // ---- DEMO SETUP ----
     auto renderer = Prepath::Renderer();
