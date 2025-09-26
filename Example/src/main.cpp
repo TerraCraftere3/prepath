@@ -14,7 +14,7 @@
 
 struct CameraController
 {
-    float moveSpeed = 5.0f;
+    float moveSpeed = 20.0f;
     glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -49,10 +49,12 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 void processInput(Prepath::RenderSettings &settings, float deltaTime)
 {
     float velocity = cameraController.moveSpeed * deltaTime;
+    float rotationSpeed = 90.0f * deltaTime; // degrees per second
 
     glm::vec3 target = settings.cam.Position + settings.cam.Front;
     cameraController.updateVectors(settings.cam.Position, target);
 
+    // Movement
     if (keys[GLFW_KEY_W])
         settings.cam.Position += cameraController.front * velocity;
     if (keys[GLFW_KEY_S])
@@ -65,6 +67,22 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
         settings.cam.Position += cameraController.worldUp * velocity;
     if (keys[GLFW_KEY_LEFT_SHIFT])
         settings.cam.Position -= cameraController.worldUp * velocity;
+
+    // Rotation using arrow keys
+    /*if (keys[GLFW_KEY_UP])
+        settings.cam.Pitch += rotationSpeed;
+    if (keys[GLFW_KEY_DOWN])
+        settings.cam.Pitch -= rotationSpeed;*/
+    if (keys[GLFW_KEY_LEFT])
+        settings.cam.Yaw -= rotationSpeed;
+    if (keys[GLFW_KEY_RIGHT])
+        settings.cam.Yaw += rotationSpeed;
+
+    // Clamp pitch to avoid gimbal lock
+    if (settings.cam.Pitch > 89.0f)
+        settings.cam.Pitch = 89.0f;
+    if (settings.cam.Pitch < -89.0f)
+        settings.cam.Pitch = -89.0f;
 
     settings.cam.updateCameraVectors();
 }
@@ -251,7 +269,7 @@ int main()
         ImGui::Checkbox("Display Bounds", &settings.bounds);
         ImGui::Checkbox("Culling", &settings.culling);
         ImGui::SeparatorText("Camera");
-        ImGui::SliderFloat("Speed", &cameraController.moveSpeed, 0.1f, 20.0f);
+        ImGui::SliderFloat("Speed", &cameraController.moveSpeed, 10.0f, 50.0f);
         ImGui::Text("Position: %.1f, %.1f, %.1f", settings.cam.Position.x, settings.cam.Position.y, settings.cam.Position.z);
         ImGui::SeparatorText("Shadows");
         ImGui::DragFloat3("Light Direction", glm::value_ptr(scene.lightDir), 0.1f, -1.0f, 1.0f);

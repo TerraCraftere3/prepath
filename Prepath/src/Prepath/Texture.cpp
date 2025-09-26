@@ -1,4 +1,5 @@
 #include "Texture.h"
+#include "Error.h"
 
 namespace Prepath
 {

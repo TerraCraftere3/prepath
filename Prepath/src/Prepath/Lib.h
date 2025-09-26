@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Context.h"
+#include "Error.h"
 #include "Renderer.h"
 #include "Scene.h"
 #include "Mesh.h"

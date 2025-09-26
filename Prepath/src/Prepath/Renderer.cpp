@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "Error.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -180,16 +181,6 @@ namespace Prepath
             m_Statistics.triangleCount += mesh->getTriangleCount();
             m_Statistics.vertexCount += mesh->getVertexCount();
         }
-
-        GLenum error;
-        do
-        {
-            error = glGetError();
-            if (error != GL_NO_ERROR)
-            {
-                PREPATH_LOG_ERROR("OpenGL error: {}", error);
-            }
-        } while (error != GL_NO_ERROR);
     }
 
     RenderSettings::RenderSettings()

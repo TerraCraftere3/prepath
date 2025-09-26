@@ -1,4 +1,6 @@
 #include "Context.h"
+#include "Error.h"
+#include <glad/glad.h>
 
 namespace Prepath
 {
@@ -18,6 +20,9 @@ namespace Prepath
         { std::cerr << "[ERROR] " << msg << "\n"; };
         m_Loggers[LogLevel::Fatal] = [](const std::string &msg)
         { std::cerr << "[FATAL] " << msg << "\n"; };
+
+        glEnable(GL_DEBUG_OUTPUT);
+        glDebugMessageCallback(OpenGLErrorCallback, 0);
     }
 
     void Context::log(LogLevel level, const std::string &msg)

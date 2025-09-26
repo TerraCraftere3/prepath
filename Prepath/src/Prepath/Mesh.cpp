@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include "Error.h"
 #include <iostream>
 
 struct Vertex
