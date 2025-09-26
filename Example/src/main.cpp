@@ -174,7 +174,7 @@ int main()
     cube->material = mat;
     scene.addMesh(cube);
 
-    scene.lightDir = glm::vec3(1.0f, 1.0f, -1.0f);
+    scene.lightDir = glm::vec3(0.1f, 0.8f, 0.5f);
 
     // ---- RUNTIME CODE ----
     float lastFrame = 0.0f;
@@ -194,6 +194,9 @@ int main()
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos({20, 20});
+        ImGui::SetNextWindowSizeConstraints(
+            ImVec2(0, settings.height - 40),
+            ImVec2(FLT_MAX, settings.height - 40));
         ImGui::SetNextWindowBgAlpha(0.5f);
         ImGui::Begin("Debug");
         ImGui::SeparatorText("Statistics");
@@ -210,6 +213,7 @@ int main()
         ImGui::SliderFloat("Speed", &cameraController.moveSpeed, 0.1f, 20.0f);
         ImGui::Text("Position: %.1f, %.1f, %.1f", settings.cam.Position.x, settings.cam.Position.y, settings.cam.Position.z);
         ImGui::SeparatorText("Shadows");
+        ImGui::DragFloat3("Light Direction", glm::value_ptr(scene.lightDir), 0.1f, -1.0f, 1.0f);
         ImGui::Image(renderer.getDepthTex(), ImVec2(256, 256), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 

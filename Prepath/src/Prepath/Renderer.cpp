@@ -42,15 +42,6 @@ namespace Prepath
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
 
-        // Culling
-        if (settings.culling)
-        {
-            glEnable(GL_CULL_FACE);
-            glFrontFace(GL_CCW);
-        }
-        else
-            glDisable(GL_CULL_FACE);
-
         // Blending
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -58,12 +49,31 @@ namespace Prepath
         glm::mat4 view = settings.cam.getViewMatrix();
         glm::mat4 projection = settings.cam.getProjectionMatrix(float(settings.width) / settings.height);
 
-        glm::mat4 lightView = glm::lookAt(scene.lightDir,
-                                          glm::vec3(0.0f, 0.0f, 0.0f),
+        AABB worldBounds = scene.bounds; // Assuming scene has overall bounds
+
+        // Calculate light space matrix based on scene bounds
+        glm::vec3 sceneCenter = (worldBounds.min + worldBounds.max) * 0.5f;
+        glm::vec3 sceneSize = worldBounds.max - worldBounds.min;
+
+        // Position light at scene center + light direction offset
+        float lightDistance = glm::length(sceneSize) * 0.5f; // Distance from scene center
+        glm::vec3 lightPos = sceneCenter + glm::normalize(scene.lightDir) * lightDistance;
+
+        glm::mat4 lightView = glm::lookAt(lightPos,
+                                          sceneCenter, // Look at scene center
                                           glm::vec3(0.0f, 1.0f, 0.0f));
 
-        float near_plane = 0.1f, far_plane = 20.0f;
-        glm::mat4 lightProjection = glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, near_plane, far_plane);
+        // Create orthographic projection that encompasses the entire scene
+        float maxExtent = glm::max(glm::max(sceneSize.x, sceneSize.y), sceneSize.z) * 0.5f;
+        float padding = maxExtent * 0.1f; // 10% padding to avoid edge artifacts
+        float orthoSize = maxExtent + padding;
+
+        float near_plane = 0.1f;
+        float far_plane = lightDistance + maxExtent + padding;
+
+        glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize,
+                                               -orthoSize, orthoSize,
+                                               near_plane, far_plane);
         glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
         // ---- SHADOWS ----
@@ -72,13 +82,24 @@ namespace Prepath
             glViewport(0, 0, PREPATH_SHADOWMAP_SIZE, PREPATH_SHADOWMAP_SIZE);
             glBindFramebuffer(GL_FRAMEBUFFER, m_DepthFBO);
             glClear(GL_DEPTH_BUFFER_BIT);
+            glEnable(GL_CULL_FACE);
             glCullFace(GL_FRONT);
+            glFrontFace(GL_CCW);
             renderScene(scene, projection, view, lightSpaceMatrix, m_DepthShader);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
         // ---- SCENE ----
         {
+            if (settings.culling)
+            {
+                glEnable(GL_CULL_FACE);
+                glFrontFace(GL_CCW);
+            }
+            else
+            {
+                glDisable(GL_CULL_FACE);
+            }
             if (settings.wireframe)
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             else
