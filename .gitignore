@@ -16,5 +16,6 @@ Runtime/*.exe
 Runtime/*.dll
 Runtime/*.pdb
 Runtime/imgui.ini
+Runtime/textures/*.bin
 
 .vscode

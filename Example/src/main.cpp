@@ -92,129 +92,179 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
 std::shared_ptr<Prepath::Texture> loadTexture(const std::string &path)
 {
     using namespace Prepath;
-    int width = 0, height = 0, nrChannels = 0;
-    PREPATH_LOG_INFO("Loading texture {}", path.c_str());
+    namespace fs = std::filesystem;
 
-    // ---- FILE EXTENSIONS ----
-    std::string ext;
-    size_t dot = path.find_last_of('.');
-    if (dot != std::string::npos)
-        ext = path.substr(dot + 1);
+    PREPATH_LOG_INFO("Loading texture: {}", path.c_str());
 
-    // ---- PNG IMAGES ----
-    if (ext == "png" || ext == "PNG")
+    std::string binPath = path + ".bin";
+    int width = 0, height = 0;
+
+    // --- Try loading cached .bin ---
+    if (fs::exists(binPath))
     {
-        std::vector<unsigned char> image;
-        unsigned w, h;
-        unsigned error = lodepng::decode(image, w, h, path);
+        std::ifstream binFile(binPath, std::ios::binary);
+        if (!binFile)
+            PREPATH_LOG_FATAL("Failed to open cached texture: {}", binPath.c_str());
 
-        if (error)
-        {
-            PREPATH_LOG_FATAL("LodePNG failed to load {}: {}", path.c_str(), lodepng_error_text(error));
-            unsigned char fallback[3] = {255, 0, 255};
-            return Texture::generateTexture(fallback, 1, 1, 3);
-        }
+        binFile.read(reinterpret_cast<char *>(&width), sizeof(int));
+        binFile.read(reinterpret_cast<char *>(&height), sizeof(int));
 
-        return Texture::generateTexture(image.data(), w, h, 4); // RGBA
+        std::vector<unsigned char> data(width * height * 4);
+        binFile.read(reinterpret_cast<char *>(data.data()), data.size());
+        binFile.close();
+
+        return Texture::generateTexture(data.data(), width, height, 4);
     }
 
-    // ---- ANY IMAGE ----
-    unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
-    if (data)
+    // --- Decode original image ---
+    unsigned char *data = stbi_load(path.c_str(), &width, &height, nullptr, 4); // force RGBA
+    if (!data)
     {
-        auto tex = Texture::generateTexture(data, width, height, nrChannels);
-        stbi_image_free(data);
-        return tex;
+        PREPATH_LOG_FATAL("Failed to load texture: {}", path.c_str());
+        unsigned char fallback[4] = {255, 0, 255, 255};
+        return Texture::generateTexture(fallback, 1, 1, 4);
+    }
+
+    auto tex = Texture::generateTexture(data, width, height, 4);
+
+    // --- Write cache .bin ---
+    std::ofstream binFile(binPath, std::ios::binary);
+    if (binFile)
+    {
+        binFile.write(reinterpret_cast<const char *>(&width), sizeof(int));
+        binFile.write(reinterpret_cast<const char *>(&height), sizeof(int));
+        binFile.write(reinterpret_cast<const char *>(data), width * height * 4);
+        binFile.close();
     }
     else
     {
-        PREPATH_LOG_FATAL("stb_image failed to load {}!!!", path.c_str());
-        unsigned char fallback[3] = {255, 0, 255};
-        return Texture::generateTexture(fallback, 1, 1, 3);
+        PREPATH_LOG_WARN("Failed to write cached texture: {}", binPath.c_str());
     }
-}
-const char *getTextureTypeName(aiTextureType type)
-{
-    switch (type)
-    {
-    case aiTextureType_DIFFUSE:
-        return "Diffuse";
-    case aiTextureType_SPECULAR:
-        return "Specular";
-    case aiTextureType_AMBIENT:
-        return "Ambient";
-    case aiTextureType_EMISSIVE:
-        return "Emissive";
-    case aiTextureType_HEIGHT:
-        return "Height";
-    case aiTextureType_NORMALS:
-        return "Normals";
-    case aiTextureType_SHININESS:
-        return "Shininess";
-    case aiTextureType_OPACITY:
-        return "Opacity";
-    case aiTextureType_DISPLACEMENT:
-        return "Displacement";
-    case aiTextureType_LIGHTMAP:
-        return "Lightmap";
-    case aiTextureType_REFLECTION:
-        return "Reflection";
-    default:
-        return "Unknown";
-    }
+
+    stbi_image_free(data);
+    return tex;
 }
 
-void printMaterialTextures(aiMaterial *aiMat)
+// VERY SKETCHY METHODS
+
+struct MeshData
 {
-    if (!aiMat)
-        return;
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec3> normals;
+    std::vector<glm::vec2> texCoords;
+    std::vector<glm::vec3> tangents;
+    std::vector<glm::vec3> bitangents;
+};
 
-    // Array of all texture types you might want to check
-    aiTextureType types[] = {
-        aiTextureType_DIFFUSE,
-        aiTextureType_SPECULAR,
-        aiTextureType_AMBIENT,
-        aiTextureType_EMISSIVE,
-        aiTextureType_HEIGHT,
-        aiTextureType_NORMALS,
-        aiTextureType_SHININESS,
-        aiTextureType_OPACITY,
-        aiTextureType_DISPLACEMENT,
-        aiTextureType_LIGHTMAP,
-        aiTextureType_REFLECTION,
-        aiTextureType_BASE_COLOR,
-        aiTextureType_NORMAL_CAMERA,
-        aiTextureType_EMISSION_COLOR,
-        aiTextureType_METALNESS,
-        aiTextureType_DIFFUSE_ROUGHNESS,
-        aiTextureType_AMBIENT_OCCLUSION,
-        aiTextureType_UNKNOWN};
+inline glm::mat4 convertAssimpMatrix(const aiMatrix4x4 &m)
+{
+    glm::mat4 result;
+    result[0][0] = m.a1;
+    result[1][0] = m.a2;
+    result[2][0] = m.a3;
+    result[3][0] = m.a4;
+    result[0][1] = m.b1;
+    result[1][1] = m.b2;
+    result[2][1] = m.b3;
+    result[3][1] = m.b4;
+    result[0][2] = m.c1;
+    result[1][2] = m.c2;
+    result[2][2] = m.c3;
+    result[3][2] = m.c4;
+    result[0][3] = m.d1;
+    result[1][3] = m.d2;
+    result[2][3] = m.d3;
+    result[3][3] = m.d4;
+    return result;
+}
 
-    for (auto type : types)
+void processMesh(aiMesh *mesh,
+                 aiMaterial *aiMat,
+                 const glm::mat4 &transform,
+                 std::unordered_map<aiMaterial *, MeshData> &groupedMeshes)
+{
+    MeshData &data = groupedMeshes[aiMat];
+
+    for (unsigned int f = 0; f < mesh->mNumFaces; f++)
     {
-        unsigned int count = aiMat->GetTextureCount(type);
-        if (count > 0)
+        const aiFace &face = mesh->mFaces[f];
+
+        for (unsigned int j = 0; j < face.mNumIndices; j++)
         {
-            PREPATH_LOG_INFO("Texture type {} has {} texture(s):", getTextureTypeName(type), count);
-            for (unsigned int i = 0; i < count; ++i)
+            unsigned int idx = face.mIndices[j];
+
+            // Position
+            aiVector3D v = mesh->mVertices[idx];
+            glm::vec4 pos = transform * glm::vec4(v.x, v.y, v.z, 1.0f);
+            data.positions.emplace_back(pos.x, pos.y, pos.z);
+
+            // Normal
+            if (mesh->HasNormals())
             {
-                aiString path;
-                if (aiMat->GetTexture(type, i, &path) == AI_SUCCESS)
-                {
-                    PREPATH_LOG_INFO("\t{}", path.C_Str());
-                }
+                aiVector3D n = mesh->mNormals[idx];
+                glm::vec3 normal = glm::mat3(transform) * glm::vec3(n.x, n.y, n.z);
+                data.normals.push_back(glm::normalize(normal));
+            }
+            else
+            {
+                data.normals.emplace_back(0.0f, 0.0f, 1.0f);
+            }
+
+            // UV
+            if (mesh->HasTextureCoords(0))
+            {
+                aiVector3D uv = mesh->mTextureCoords[0][idx];
+                data.texCoords.emplace_back(uv.x, uv.y);
+            }
+            else
+            {
+                data.texCoords.emplace_back(0.0f, 0.0f);
+            }
+
+            if (mesh->HasTangentsAndBitangents())
+            {
+                aiVector3D t = mesh->mTangents[idx];
+                aiVector3D b = mesh->mBitangents[idx];
+                glm::vec3 tangent = glm::mat3(transform) * glm::vec3(t.x, t.y, t.z);
+                glm::vec3 bitangent = glm::mat3(transform) * glm::vec3(b.x, b.y, b.z);
+                data.tangents.push_back(glm::normalize(tangent));
+                data.bitangents.push_back(glm::normalize(bitangent));
+            }
+            else
+            {
+                data.tangents.emplace_back(1.0f, 0.0f, 0.0f);
+                data.bitangents.emplace_back(0.0f, 1.0f, 0.0f);
             }
         }
     }
 }
 
-// VERY SKETCHY METHOD
+void processNode(aiNode *node,
+                 const aiScene *scene,
+                 const glm::mat4 &parentTransform,
+                 std::unordered_map<aiMaterial *, MeshData> &groupedMeshes)
+{
+    glm::mat4 transform = parentTransform * convertAssimpMatrix(node->mTransformation);
+
+    for (unsigned int i = 0; i < node->mNumMeshes; i++)
+    {
+        aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+        aiMaterial *aiMat = scene->mMaterials[mesh->mMaterialIndex];
+        processMesh(mesh, aiMat, transform, groupedMeshes);
+    }
+
+    for (unsigned int i = 0; i < node->mNumChildren; i++)
+    {
+        processNode(node->mChildren[i], scene, transform, groupedMeshes);
+    }
+}
+
 std::vector<std::shared_ptr<Prepath::Mesh>> loadModel(const std::string &path)
 {
     using namespace Prepath;
     PREPATH_LOG_INFO("Loading model {}", path.c_str());
-    Assimp::Importer importer;
 
+    Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(
         path,
         aiProcess_Triangulate |
@@ -230,52 +280,12 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModel(const std::string &path)
     }
 
     std::unordered_map<aiMaterial *, std::shared_ptr<Material>> materialCache;
-
-    // Group vertex data by material
-    struct MeshData
-    {
-        std::vector<glm::vec3> positions;
-        std::vector<glm::vec3> normals;
-        std::vector<glm::vec2> texCoords;
-        std::vector<glm::vec3> tangents;
-        std::vector<glm::vec3> bitangents;
-    };
     std::unordered_map<aiMaterial *, MeshData> groupedMeshes;
 
-    for (unsigned int m = 0; m < scene->mNumMeshes; m++)
-    {
-        aiMesh *mesh = scene->mMeshes[m];
-        aiMaterial *aiMat = scene->mMaterials[mesh->mMaterialIndex];
-
-        MeshData &data = groupedMeshes[aiMat];
-
-        data.positions.reserve(data.positions.size() + mesh->mNumVertices);
-        data.normals.reserve(data.normals.size() + mesh->mNumVertices);
-        data.texCoords.reserve(data.texCoords.size() + mesh->mNumVertices);
-        data.tangents.reserve(data.tangents.size() + mesh->mNumVertices);
-        data.bitangents.reserve(data.bitangents.size() + mesh->mNumVertices);
-
-        for (unsigned int i = 0; i < mesh->mNumVertices; i++)
-        {
-            data.positions.emplace_back(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-            data.tangents.emplace_back(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
-            data.bitangents.emplace_back(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
-
-            if (mesh->HasNormals())
-                data.normals.emplace_back(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-            else
-                data.normals.emplace_back(0.0f, 0.0f, 1.0f);
-
-            if (mesh->HasTextureCoords(0))
-                data.texCoords.emplace_back(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
-            else
-                data.texCoords.emplace_back(0.0f, 0.0f);
-        }
-    }
+    processNode(scene->mRootNode, scene, glm::mat4(1.0f), groupedMeshes);
 
     std::vector<std::shared_ptr<Mesh>> meshes;
 
-    // Generate one mesh per material
     for (auto &[aiMat, data] : groupedMeshes)
     {
         auto prepathMesh = Mesh::generateMesh(
@@ -284,7 +294,6 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModel(const std::string &path)
 
         std::shared_ptr<Material> mat;
 
-        // Material caching
         auto it = materialCache.find(aiMat);
         if (it != materialCache.end())
         {
@@ -293,18 +302,14 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModel(const std::string &path)
         else
         {
             mat = Material::generateMaterial();
-            printMaterialTextures(aiMat);
 
-            if (aiMat)
-            {
-                aiString texPath;
-                if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS)
-                    mat->albedo = loadTexture(texPath.C_Str());
+            aiString texPath;
+            if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS)
+                mat->albedo = loadTexture(texPath.C_Str());
 
-                if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS ||
-                    aiMat->GetTexture(aiTextureType_HEIGHT, 0, &texPath) == AI_SUCCESS)
-                    mat->normal = loadTexture(texPath.C_Str());
-            }
+            if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS ||
+                aiMat->GetTexture(aiTextureType_HEIGHT, 0, &texPath) == AI_SUCCESS)
+                mat->normal = loadTexture(texPath.C_Str());
 
             materialCache[aiMat] = mat;
         }
@@ -353,11 +358,10 @@ int main()
     settings.cam.Position = glm::vec3(0, 3.0f, 4.0f);
     settings.cam.updateCameraVectors();
 
-    auto sponza_meshes = loadModel("sponza.obj");
+    auto sponza_meshes = loadModel("NewSponza_Main_glTF_003.gltf");
     for (auto mesh : sponza_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
-        mesh->modelMatrix = glm::scale(mesh->modelMatrix, glm::vec3(0.05f));
         scene.addMesh(mesh);
     }
 
