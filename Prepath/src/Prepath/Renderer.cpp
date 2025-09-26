@@ -158,6 +158,10 @@ namespace Prepath
         m_Statistics.triangleCount = 0;
         m_Statistics.vertexCount = 0;
 
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_DepthTex);
+        shader->setUniform1i("uDepthMap", 0);
+
         for (auto mesh : scene.getMeshes())
         {
             shader->setUniformMat4f("uModel", mesh->modelMatrix);
@@ -167,6 +171,9 @@ namespace Prepath
             {
                 auto mat = mesh->material;
                 shader->setUniform3f("uTint", mat->tint);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, mat->albedo->getID());
+                shader->setUniform1i("uAlbedoMap", 1);
             }
             mesh->draw();
             m_Statistics.drawCallCount += mesh->getDrawCallCount();

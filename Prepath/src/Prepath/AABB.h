@@ -1,3 +1,4 @@
+#pragma once
 #include <algorithm>
 #include <iostream>
 #include <glm/glm.hpp> // Using glm for vec3

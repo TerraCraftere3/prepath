@@ -9,6 +9,9 @@
 #include <assimp/postprocess.h>
 #include "Prepath/Lib.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 struct CameraController
 {
     float moveSpeed = 5.0f;
@@ -64,6 +67,23 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
         settings.cam.Position -= cameraController.worldUp * velocity;
 
     settings.cam.updateCameraVectors();
+}
+
+std::shared_ptr<Prepath::Texture> loadTexture(std::string path)
+{
+    using namespace Prepath;
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        return Texture::generateTexture(data, width, height, nrChannels);
+    }
+    else
+    {
+        PREPATH_LOG_FATAL("Failed to load texture at {}!!!", path.c_str());
+        unsigned char error[3] = {255, 0, 255};
+        return Texture::generateTexture(error, 1, 1, 3);
+    }
 }
 
 std::shared_ptr<Prepath::Mesh> loadModel(std::string path)
@@ -162,6 +182,7 @@ int main()
 
     auto mat = Prepath::Material::createMaterial();
     mat->tint = glm::vec3(1.0f);
+    mat->albedo = loadTexture("textures/sponza_floor_a_diff.tga");
 
     auto sponza = loadModel("sponza.obj");
     sponza->modelMatrix = glm::rotate(sponza->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));

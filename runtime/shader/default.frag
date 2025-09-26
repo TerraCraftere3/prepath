@@ -4,6 +4,7 @@ out vec4 FragColor;
 uniform vec3 uTint;
 uniform vec3 uLightDir;
 uniform sampler2D uDepthMap;
+uniform sampler2D uAlbedoMap;
 
 in vec3 WorldNormal;
 in vec3 WorldPos;
@@ -32,7 +33,7 @@ float ShadowCalculationPCF(vec4 fragPosLightSpace) {
 void main() {
   //vec3 color = vec3(TexCoord, 0.0);
   //vec3 color = WorldNormal * 0.5 + 0.5;
-  vec3 color = uTint;
+  vec3 color = texture(uAlbedoMap, TexCoord).rgb * uTint;
   float shadow = ShadowCalculationPCF(WorldPosLightSpace);
   vec3 directLight = max(dot(WorldNormal, uLightDir), 0.0) * (1.0 - shadow) * color;
   vec3 indirectLight = 0.2 * (1.0 - max(dot(WorldNormal, uLightDir), 0.0)) * color;
