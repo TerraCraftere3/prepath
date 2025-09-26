@@ -86,7 +86,7 @@ std::shared_ptr<Prepath::Texture> loadTexture(std::string path)
     }
 }
 
-std::shared_ptr<Prepath::Mesh> loadModel(std::string path)
+std::vector<std::shared_ptr<Prepath::Mesh>> loadModel(const std::string &path)
 {
     using namespace Prepath;
     Assimp::Importer importer;
@@ -101,28 +101,36 @@ std::shared_ptr<Prepath::Mesh> loadModel(std::string path)
     {
         std::cerr << "Assimp error loading " << path << ": "
                   << importer.GetErrorString() << std::endl;
-        return nullptr;
+        return {};
     }
 
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> texCoords;
+    std::vector<std::shared_ptr<Mesh>> meshes;
 
     for (unsigned int m = 0; m < scene->mNumMeshes; m++)
     {
         aiMesh *mesh = scene->mMeshes[m];
 
+        std::vector<glm::vec3> positions;
+        std::vector<glm::vec3> normals;
+        std::vector<glm::vec2> texCoords;
+
+        positions.reserve(mesh->mNumVertices);
+        normals.reserve(mesh->mNumVertices);
+        texCoords.reserve(mesh->mNumVertices);
+
         for (unsigned int i = 0; i < mesh->mNumVertices; i++)
         {
-            positions.emplace_back(mesh->mVertices[i].x,
-                                   mesh->mVertices[i].y,
-                                   mesh->mVertices[i].z);
+            positions.emplace_back(
+                mesh->mVertices[i].x,
+                mesh->mVertices[i].y,
+                mesh->mVertices[i].z);
 
             if (mesh->HasNormals())
             {
-                normals.emplace_back(mesh->mNormals[i].x,
-                                     mesh->mNormals[i].y,
-                                     mesh->mNormals[i].z);
+                normals.emplace_back(
+                    mesh->mNormals[i].x,
+                    mesh->mNormals[i].y,
+                    mesh->mNormals[i].z);
             }
             else
             {
@@ -131,17 +139,36 @@ std::shared_ptr<Prepath::Mesh> loadModel(std::string path)
 
             if (mesh->HasTextureCoords(0))
             {
-                texCoords.emplace_back(mesh->mTextureCoords[0][i].x,
-                                       mesh->mTextureCoords[0][i].y);
+                texCoords.emplace_back(
+                    mesh->mTextureCoords[0][i].x,
+                    mesh->mTextureCoords[0][i].y);
             }
             else
             {
                 texCoords.emplace_back(0.0f, 0.0f);
             }
         }
+
+        auto prepathMesh = Mesh::generateMesh(positions, normals, texCoords);
+
+        auto mat = Material::generateMaterial();
+
+        aiMaterial *aiMat = scene->mMaterials[mesh->mMaterialIndex];
+
+        if (aiMat)
+        {
+            aiString texPath;
+            if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS)
+            {
+                mat->albedo = loadTexture(texPath.C_Str());
+            }
+        }
+
+        prepathMesh->material = mat;
+        meshes.push_back(prepathMesh);
     }
 
-    return Mesh::generateMesh(positions, normals, texCoords);
+    return meshes;
 }
 
 int main()
@@ -151,6 +178,7 @@ int main()
     GLFWwindow *window = glfwCreateWindow(800, 600, "Prepath Demo", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSetKeyCallback(window, key_callback);
+    // glfwSwapInterval(0); // Disable VSync
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
     IMGUI_CHECKVERSION();
@@ -180,20 +208,12 @@ int main()
     settings.cam.Position = glm::vec3(0, 3.0f, 4.0f);
     settings.cam.updateCameraVectors();
 
-    auto mat = Prepath::Material::createMaterial();
-    mat->tint = glm::vec3(1.0f);
-    mat->albedo = loadTexture("textures/sponza_floor_a_diff.tga");
-
-    auto sponza = loadModel("sponza.obj");
-    sponza->modelMatrix = glm::rotate(sponza->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
-    sponza->material = mat;
-    scene.addMesh(sponza);
-
-    auto cube = Prepath::Mesh::generateCube();
-    cube->modelMatrix = glm::scale(cube->modelMatrix, glm::vec3(1.0f));
-    cube->modelMatrix = glm::translate(cube->modelMatrix, glm::vec3(0.0f, 1.5f, 0.0f));
-    cube->material = mat;
-    scene.addMesh(cube);
+    auto sponza_meshes = loadModel("sponza.obj");
+    for (auto mesh : sponza_meshes)
+    {
+        mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
+        scene.addMesh(mesh);
+    }
 
     scene.lightDir = glm::vec3(0.1f, 0.8f, 0.5f);
 
