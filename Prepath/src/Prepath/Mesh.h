@@ -31,7 +31,9 @@ namespace Prepath
         static std::shared_ptr<Mesh> generateMesh(
             const std::vector<glm::vec3> &positions,
             const std::vector<glm::vec3> &normals,
-            const std::vector<glm::vec2> &texCoords);
+            const std::vector<glm::vec2> &texCoords,
+            const std::vector<glm::vec3> *tangentsIn = nullptr,
+            const std::vector<glm::vec3> *bitangentsIn = nullptr);
         static std::shared_ptr<Mesh> generateCube(float size = 1.0f);
         static std::shared_ptr<Mesh> generateQuad(float width = 1.0f, float height = 1.0f);
 
@@ -55,6 +57,8 @@ namespace Prepath
         void setupMesh(
             const std::vector<glm::vec3> &positions,
             const std::vector<glm::vec3> &normals,
-            const std::vector<glm::vec2> &texCoords);
+            const std::vector<glm::vec2> &texCoords,
+            const std::vector<glm::vec3> *tangentsIn = nullptr,
+            const std::vector<glm::vec3> *bitangentsIn = nullptr);
     };
 }

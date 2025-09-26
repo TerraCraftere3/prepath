@@ -11,8 +11,8 @@ add_subdirectory(Glad)
 message(STATUS "Prepath building glm")
 add_subdirectory(glm)
 
-message(STATUS "Prepath building ImGui")
 if(PREPATH_BUILD_EXAMPLES)
+    message(STATUS "Prepath building ImGui")
     file(GLOB IMGUI_SRC CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/ImGui/*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/ImGui/backends/imgui_impl_opengl3.cpp"
@@ -33,4 +33,16 @@ if(PREPATH_BUILD_EXAMPLES)
     set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
     message(STATUS "Prepath building Assimp")
     add_subdirectory(assimp)
+
+    message(STATUS "Prepath adding LodePNG")
+
+    set(LODEPNG_SRC
+        "${CMAKE_CURRENT_SOURCE_DIR}/lodepng/lodepng.cpp"
+    )
+
+    add_library(lodepng STATIC ${LODEPNG_SRC})
+
+    target_include_directories(lodepng PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/lodepng"
+    )
 endif()

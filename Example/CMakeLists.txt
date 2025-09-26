@@ -19,6 +19,7 @@ target_link_libraries(prepath_example PRIVATE
     ${PREPATH_IMGUI_NAME}  
     ${PREPATH_SPDLOG_NAME}
     ${PREPATH_ASSIMP_NAME}
+    ${PREPATH_LODEPNG_NAME}
     prepath 
     )
 if (MSVC)

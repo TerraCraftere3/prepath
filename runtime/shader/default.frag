@@ -5,6 +5,7 @@ uniform vec3 uTint;
 uniform vec3 uLightDir;
 uniform sampler2D uDepthMap;
 uniform sampler2D uAlbedoMap;
+uniform sampler2D uNormalMap;
 
 in vec3 WorldNormal;
 in vec3 WorldPos;

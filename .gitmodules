@@ -13,3 +13,6 @@
 [submodule "Vendor/assimp"]
 	path = Vendor/assimp
 	url = https://github.com/assimp/assimp
+[submodule "Vendor/lodepng"]
+	path = Vendor/lodepng
+	url = https://github.com/lvandeve/lodepng

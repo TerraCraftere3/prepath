@@ -12,6 +12,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include "lodepng.h"
+
 struct CameraController
 {
     float moveSpeed = 20.0f;
@@ -69,10 +71,10 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
         settings.cam.Position -= cameraController.worldUp * velocity;
 
     // Rotation using arrow keys
-    /*if (keys[GLFW_KEY_UP])
+    if (keys[GLFW_KEY_UP])
         settings.cam.Pitch += rotationSpeed;
     if (keys[GLFW_KEY_DOWN])
-        settings.cam.Pitch -= rotationSpeed;*/
+        settings.cam.Pitch -= rotationSpeed;
     if (keys[GLFW_KEY_LEFT])
         settings.cam.Yaw -= rotationSpeed;
     if (keys[GLFW_KEY_RIGHT])
@@ -87,32 +89,137 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
     settings.cam.updateCameraVectors();
 }
 
-std::shared_ptr<Prepath::Texture> loadTexture(std::string path)
+std::shared_ptr<Prepath::Texture> loadTexture(const std::string &path)
 {
     using namespace Prepath;
-    int width, height, nrChannels;
+    int width = 0, height = 0, nrChannels = 0;
+    PREPATH_LOG_INFO("Loading texture {}", path.c_str());
+
+    // ---- FILE EXTENSIONS ----
+    std::string ext;
+    size_t dot = path.find_last_of('.');
+    if (dot != std::string::npos)
+        ext = path.substr(dot + 1);
+
+    // ---- PNG IMAGES ----
+    if (ext == "png" || ext == "PNG")
+    {
+        std::vector<unsigned char> image;
+        unsigned w, h;
+        unsigned error = lodepng::decode(image, w, h, path);
+
+        if (error)
+        {
+            PREPATH_LOG_FATAL("LodePNG failed to load {}: {}", path.c_str(), lodepng_error_text(error));
+            unsigned char fallback[3] = {255, 0, 255};
+            return Texture::generateTexture(fallback, 1, 1, 3);
+        }
+
+        return Texture::generateTexture(image.data(), w, h, 4); // RGBA
+    }
+
+    // ---- ANY IMAGE ----
     unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
     if (data)
     {
-        return Texture::generateTexture(data, width, height, nrChannels);
+        auto tex = Texture::generateTexture(data, width, height, nrChannels);
+        stbi_image_free(data);
+        return tex;
     }
     else
     {
-        PREPATH_LOG_FATAL("Failed to load texture at {}!!!", path.c_str());
-        unsigned char error[3] = {255, 0, 255};
-        return Texture::generateTexture(error, 1, 1, 3);
+        PREPATH_LOG_FATAL("stb_image failed to load {}!!!", path.c_str());
+        unsigned char fallback[3] = {255, 0, 255};
+        return Texture::generateTexture(fallback, 1, 1, 3);
+    }
+}
+const char *getTextureTypeName(aiTextureType type)
+{
+    switch (type)
+    {
+    case aiTextureType_DIFFUSE:
+        return "Diffuse";
+    case aiTextureType_SPECULAR:
+        return "Specular";
+    case aiTextureType_AMBIENT:
+        return "Ambient";
+    case aiTextureType_EMISSIVE:
+        return "Emissive";
+    case aiTextureType_HEIGHT:
+        return "Height";
+    case aiTextureType_NORMALS:
+        return "Normals";
+    case aiTextureType_SHININESS:
+        return "Shininess";
+    case aiTextureType_OPACITY:
+        return "Opacity";
+    case aiTextureType_DISPLACEMENT:
+        return "Displacement";
+    case aiTextureType_LIGHTMAP:
+        return "Lightmap";
+    case aiTextureType_REFLECTION:
+        return "Reflection";
+    default:
+        return "Unknown";
     }
 }
 
+void printMaterialTextures(aiMaterial *aiMat)
+{
+    if (!aiMat)
+        return;
+
+    // Array of all texture types you might want to check
+    aiTextureType types[] = {
+        aiTextureType_DIFFUSE,
+        aiTextureType_SPECULAR,
+        aiTextureType_AMBIENT,
+        aiTextureType_EMISSIVE,
+        aiTextureType_HEIGHT,
+        aiTextureType_NORMALS,
+        aiTextureType_SHININESS,
+        aiTextureType_OPACITY,
+        aiTextureType_DISPLACEMENT,
+        aiTextureType_LIGHTMAP,
+        aiTextureType_REFLECTION,
+        aiTextureType_BASE_COLOR,
+        aiTextureType_NORMAL_CAMERA,
+        aiTextureType_EMISSION_COLOR,
+        aiTextureType_METALNESS,
+        aiTextureType_DIFFUSE_ROUGHNESS,
+        aiTextureType_AMBIENT_OCCLUSION,
+        aiTextureType_UNKNOWN};
+
+    for (auto type : types)
+    {
+        unsigned int count = aiMat->GetTextureCount(type);
+        if (count > 0)
+        {
+            PREPATH_LOG_INFO("Texture type {} has {} texture(s):", getTextureTypeName(type), count);
+            for (unsigned int i = 0; i < count; ++i)
+            {
+                aiString path;
+                if (aiMat->GetTexture(type, i, &path) == AI_SUCCESS)
+                {
+                    PREPATH_LOG_INFO("\t{}", path.C_Str());
+                }
+            }
+        }
+    }
+}
+
+// VERY SKETCHY METHOD
 std::vector<std::shared_ptr<Prepath::Mesh>> loadModel(const std::string &path)
 {
     using namespace Prepath;
+    PREPATH_LOG_INFO("Loading model {}", path.c_str());
     Assimp::Importer importer;
 
     const aiScene *scene = importer.ReadFile(
         path,
         aiProcess_Triangulate |
             aiProcess_GenNormals |
+            aiProcess_CalcTangentSpace |
             aiProcess_FlipUVs);
 
     if (!scene || !scene->HasMeshes())
@@ -122,64 +229,84 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModel(const std::string &path)
         return {};
     }
 
-    std::vector<std::shared_ptr<Mesh>> meshes;
+    std::unordered_map<aiMaterial *, std::shared_ptr<Material>> materialCache;
+
+    // Group vertex data by material
+    struct MeshData
+    {
+        std::vector<glm::vec3> positions;
+        std::vector<glm::vec3> normals;
+        std::vector<glm::vec2> texCoords;
+        std::vector<glm::vec3> tangents;
+        std::vector<glm::vec3> bitangents;
+    };
+    std::unordered_map<aiMaterial *, MeshData> groupedMeshes;
 
     for (unsigned int m = 0; m < scene->mNumMeshes; m++)
     {
         aiMesh *mesh = scene->mMeshes[m];
+        aiMaterial *aiMat = scene->mMaterials[mesh->mMaterialIndex];
 
-        std::vector<glm::vec3> positions;
-        std::vector<glm::vec3> normals;
-        std::vector<glm::vec2> texCoords;
+        MeshData &data = groupedMeshes[aiMat];
 
-        positions.reserve(mesh->mNumVertices);
-        normals.reserve(mesh->mNumVertices);
-        texCoords.reserve(mesh->mNumVertices);
+        data.positions.reserve(data.positions.size() + mesh->mNumVertices);
+        data.normals.reserve(data.normals.size() + mesh->mNumVertices);
+        data.texCoords.reserve(data.texCoords.size() + mesh->mNumVertices);
+        data.tangents.reserve(data.tangents.size() + mesh->mNumVertices);
+        data.bitangents.reserve(data.bitangents.size() + mesh->mNumVertices);
 
         for (unsigned int i = 0; i < mesh->mNumVertices; i++)
         {
-            positions.emplace_back(
-                mesh->mVertices[i].x,
-                mesh->mVertices[i].y,
-                mesh->mVertices[i].z);
+            data.positions.emplace_back(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+            data.tangents.emplace_back(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+            data.bitangents.emplace_back(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
 
             if (mesh->HasNormals())
-            {
-                normals.emplace_back(
-                    mesh->mNormals[i].x,
-                    mesh->mNormals[i].y,
-                    mesh->mNormals[i].z);
-            }
+                data.normals.emplace_back(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
             else
-            {
-                normals.emplace_back(0.0f, 0.0f, 1.0f);
-            }
+                data.normals.emplace_back(0.0f, 0.0f, 1.0f);
 
             if (mesh->HasTextureCoords(0))
-            {
-                texCoords.emplace_back(
-                    mesh->mTextureCoords[0][i].x,
-                    mesh->mTextureCoords[0][i].y);
-            }
+                data.texCoords.emplace_back(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
             else
-            {
-                texCoords.emplace_back(0.0f, 0.0f);
-            }
+                data.texCoords.emplace_back(0.0f, 0.0f);
         }
+    }
 
-        auto prepathMesh = Mesh::generateMesh(positions, normals, texCoords);
+    std::vector<std::shared_ptr<Mesh>> meshes;
 
-        auto mat = Material::generateMaterial();
+    // Generate one mesh per material
+    for (auto &[aiMat, data] : groupedMeshes)
+    {
+        auto prepathMesh = Mesh::generateMesh(
+            data.positions, data.normals, data.texCoords,
+            &data.tangents, &data.bitangents);
 
-        aiMaterial *aiMat = scene->mMaterials[mesh->mMaterialIndex];
+        std::shared_ptr<Material> mat;
 
-        if (aiMat)
+        // Material caching
+        auto it = materialCache.find(aiMat);
+        if (it != materialCache.end())
         {
-            aiString texPath;
-            if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS)
+            mat = it->second;
+        }
+        else
+        {
+            mat = Material::generateMaterial();
+            printMaterialTextures(aiMat);
+
+            if (aiMat)
             {
-                mat->albedo = loadTexture(texPath.C_Str());
+                aiString texPath;
+                if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS)
+                    mat->albedo = loadTexture(texPath.C_Str());
+
+                if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS ||
+                    aiMat->GetTexture(aiTextureType_HEIGHT, 0, &texPath) == AI_SUCCESS)
+                    mat->normal = loadTexture(texPath.C_Str());
             }
+
+            materialCache[aiMat] = mat;
         }
 
         prepathMesh->material = mat;
@@ -230,6 +357,7 @@ int main()
     for (auto mesh : sponza_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
+        mesh->modelMatrix = glm::scale(mesh->modelMatrix, glm::vec3(0.05f));
         scene.addMesh(mesh);
     }
 
@@ -295,8 +423,10 @@ int main()
             {
                 auto mat = mesh->material;
                 ImGui::ColorEdit3("Tint", glm::value_ptr(mat->tint));
-                ImGui::Text("Albedo: ");
+                ImGui::Text("Textures: ");
                 ImGui::Image(mat->albedo->getID(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::SameLine();
+                ImGui::Image(mat->normal->getID(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
 
                 ImGui::TreePop();
             }
