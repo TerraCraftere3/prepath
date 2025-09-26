@@ -261,8 +261,18 @@ int main()
         ImGui::SeparatorText("Statistics");
         auto stats = renderer.getStatistics();
         ImGui::Text("Draw Calls: %d", stats.drawCallCount);
-        ImGui::Text("Triangles: %d", stats.triangleCount);
-        ImGui::Text("Vertices: %d", stats.vertexCount);
+        {
+            std::stringstream ss;
+            ss.imbue(std::locale(""));
+            ss << stats.triangleCount;
+            ImGui::Text("Triangles: %s", ss.str().c_str());
+        }
+        {
+            std::stringstream ss;
+            ss.imbue(std::locale(""));
+            ss << stats.vertexCount;
+            ImGui::Text("Vertices: %s", ss.str().c_str());
+        }
         ImGui::Text("Delta Time: %.3f ms", deltaTime);
         ImGui::SeparatorText("Settings");
         ImGui::Checkbox("Display Wireframe", &settings.wireframe);
@@ -271,6 +281,29 @@ int main()
         ImGui::SeparatorText("Camera");
         ImGui::SliderFloat("Speed", &cameraController.moveSpeed, 10.0f, 50.0f);
         ImGui::Text("Position: %.1f, %.1f, %.1f", settings.cam.Position.x, settings.cam.Position.y, settings.cam.Position.z);
+        ImGui::SeparatorText("Scene");
+        int meshIndex = 0;
+        for (auto &mesh : scene.getMeshes())
+        {
+            ImGui::PushID(meshIndex);
+
+            std::stringstream ss;
+            ss.imbue(std::locale(""));
+            ss << mesh->getTriangleCount();
+
+            if (ImGui::TreeNode("Mesh", "Mesh (%s Triangles)", ss.str().c_str()))
+            {
+                auto mat = mesh->material;
+                ImGui::ColorEdit3("Tint", glm::value_ptr(mat->tint));
+                ImGui::Text("Albedo: ");
+                ImGui::Image(mat->albedo->getID(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+
+                ImGui::TreePop();
+            }
+
+            ImGui::PopID();
+            meshIndex++;
+        }
         ImGui::SeparatorText("Shadows");
         ImGui::DragFloat3("Light Direction", glm::value_ptr(scene.lightDir), 0.1f, -1.0f, 1.0f);
         ImGui::Image(renderer.getDepthTex(), ImVec2(256, 256), ImVec2(0, 1), ImVec2(1, 0));
