@@ -40,6 +40,7 @@ namespace Prepath
     public:
         Renderer();
         ~Renderer();
+        void renderGizmo(std::shared_ptr<Texture> texture, const glm::vec3 &position);
         void render(const Scene &scene, const RenderSettings &settings);
         void renderScene(const Scene &scene, const glm::mat4 &projection, const glm::mat4 &view, const glm::mat4 &lightSpace, std::shared_ptr<Shader> shader, const glm::vec3 &uCameraPos = glm::vec3(0.0f), int uDebugTexture = 0);
         unsigned int getDepthTex() { return m_DepthTex; }
@@ -51,10 +52,14 @@ namespace Prepath
         std::shared_ptr<Shader> m_DepthShader;
         std::shared_ptr<Shader> m_BoundsShader;
         std::shared_ptr<Shader> m_SkyboxShader;
+        std::shared_ptr<Shader> m_GizmoShader;
         std::shared_ptr<Mesh> m_BoundsMesh;
         std::shared_ptr<Mesh> m_SkyboxMesh;
+        std::shared_ptr<Mesh> m_GizmoMesh;
         unsigned int m_DepthFBO;
         unsigned int m_DepthTex;
+        glm::mat4 m_LastView;
+        glm::mat4 m_LastProjection;
     };
 
 }

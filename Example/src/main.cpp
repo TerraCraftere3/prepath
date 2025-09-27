@@ -94,6 +94,7 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
 #define DEMO_IMPORT_ERATO // Statue
 // #define DEMO_IMPORT_DRAGON // Dragon
 // #define DEMO_IMPORT_GALLERY // Gallery
+#define DEMO_ENABLE_GIZMOS // Gizmos
 
 void printExtension(const std::string &name, int indent = 1)
 {
@@ -102,7 +103,7 @@ void printExtension(const std::string &name, int indent = 1)
 
 void printExtensions()
 {
-    PREPATH_LOG_INFO("Loaded extension into client: ");
+    PREPATH_LOG_INFO("Loaded Extension into Demo: ");
     printExtension("Scenes", 1);
 #ifdef DEMO_IMPORT_SPONZA
     printExtension("Sponza Base", 2);
@@ -127,6 +128,9 @@ void printExtensions()
 #endif
 #ifdef DEMO_IMPORT_GALLERY
     printExtension("Gallery", 2);
+#endif
+#ifdef DEMO_ENABLE_GIZMOS
+    printExtension("Gizmos", 1);
 #endif
 }
 
@@ -177,6 +181,10 @@ int main()
     settings.culling = false;
     settings.cam.Position = glm::vec3(0, 1.5f, 4.0f);
     settings.cam.updateCameraVectors();
+
+#ifdef DEMO_ENABLE_GIZMOS
+    auto light_gizmo = loadTexture("textures/gizmo_lightbulb.png");
+#endif
 
 #ifdef DEMO_IMPORT_SPONZA
     bool showSponza = true;
@@ -454,12 +462,20 @@ int main()
         ImGui::SeparatorText("Shadows");
         ImGui::DragFloat3("Light Direction", glm::value_ptr(scene.lightDir), 0.1f, -1.0f, 1.0f);
         ImGui::Image(renderer.getDepthTex(), ImVec2(256, 256), ImVec2(0, 1), ImVec2(1, 0));
+
+#ifdef DEMO_ENABLE_GIZMOS
+        ImGui::SeparatorText("Gizmos");
+        ImGui::Image(light_gizmo->getID(), ImVec2(64, 64));
+#endif
         ImGui::End();
 
         ImGui::Render();
 
         // ---- Render Code ----
         renderer.render(scene, settings);
+#ifdef DEMO_ENABLE_GIZMOS
+        renderer.renderGizmo(light_gizmo, glm::vec3(0.0f, 1.0f, 0.0f));
+#endif
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);

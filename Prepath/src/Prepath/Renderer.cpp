@@ -14,9 +14,38 @@ namespace Prepath
         m_DepthShader = Shader::generateShader(PREPATH_READ_SHADER("depth.vert").c_str(), PREPATH_READ_SHADER("depth.frag").c_str());
         m_BoundsShader = Shader::generateShader(PREPATH_READ_SHADER("bounds.vert").c_str(), PREPATH_READ_SHADER("bounds.frag").c_str());
         m_SkyboxShader = Shader::generateShader(PREPATH_READ_SHADER("skybox.vert").c_str(), PREPATH_READ_SHADER("skybox.frag").c_str());
+        m_GizmoShader = Shader::generateShader(PREPATH_READ_SHADER("gizmo.vert").c_str(), PREPATH_READ_SHADER("gizmo.frag").c_str());
 
         m_BoundsMesh = Mesh::generateCube(0.5f);
         m_SkyboxMesh = Mesh::generateCube(1.0f);
+        m_GizmoMesh = Mesh::generateMesh(
+            // Positions
+            {
+                {-0.5f, -0.5f, 0.0f}, // tri 1
+                {0.5f, -0.5f, 0.0f},
+                {0.5f, 0.5f, 0.0f},
+
+                {-0.5f, -0.5f, 0.0f}, // tri 2
+                {0.5f, 0.5f, 0.0f},
+                {-0.5f, 0.5f, 0.0f}},
+            // Normals
+            {
+                {0.0f, 0.0f, 1.0f}, // tri 1
+                {0.0f, 0.0f, 1.0f},
+                {0.0f, 0.0f, 1.0f},
+
+                {0.0f, 0.0f, 1.0f}, // tri 2
+                {0.0f, 0.0f, 1.0f},
+                {0.0f, 0.0f, 1.0f}},
+            // TexCoords
+            {
+                {0.0f, 1.0f}, // tri 1
+                {1.0f, 1.0f},
+                {1.0f, 0.0f},
+
+                {0.0f, 1.0f}, // tri 2
+                {1.0f, 0.0f},
+                {0.0f, 0.0f}});
 
         glGenFramebuffers(1, &m_DepthFBO);
         glGenTextures(1, &m_DepthTex);
@@ -39,6 +68,35 @@ namespace Prepath
     {
     }
 
+    void Renderer::renderGizmo(std::shared_ptr<Texture> texture, const glm::vec3 &position)
+    {
+        glm::mat4 view = m_LastView;
+        glm::mat4 projection = m_LastProjection;
+
+        glm::mat4 rotationOnly = view;
+        rotationOnly[3] = glm::vec4(0, 0, 0, 1);
+
+        glm::mat4 billboardRotation = glm::inverse(rotationOnly);
+
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), position) * billboardRotation;
+        model = glm::scale(model, glm::vec3(0.5f));
+
+        m_GizmoShader->bind();
+        m_GizmoShader->setUniformMat4f("uView", view);
+        m_GizmoShader->setUniformMat4f("uProjection", projection);
+        m_GizmoShader->setUniformMat4f("uModel", model);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture->getID());
+        m_GizmoShader->setUniform1i("uTexture", 0);
+        m_GizmoShader->setUniform3f("uTint", glm::vec3(1.0f));
+
+        m_GizmoMesh->draw();
+
+        m_Statistics.drawCallCount += m_GizmoMesh->getDrawCallCount();
+        m_Statistics.triangleCount += m_GizmoMesh->getTriangleCount();
+        m_Statistics.vertexCount += m_GizmoMesh->getVertexCount();
+    }
+
     void Renderer::render(const Scene &scene, const RenderSettings &settings)
     {
         // Depth
@@ -51,6 +109,9 @@ namespace Prepath
 
         glm::mat4 view = settings.cam.getViewMatrix();
         glm::mat4 projection = settings.cam.getProjectionMatrix(float(settings.width) / settings.height);
+
+        m_LastView = view;
+        m_LastProjection = projection;
 
         AABB worldBounds = scene.bounds; // Assuming scene has overall bounds
 
