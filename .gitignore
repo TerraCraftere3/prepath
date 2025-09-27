@@ -16,8 +16,8 @@ Runtime/*.exe
 Runtime/*.dll
 Runtime/*.pdb
 Runtime/imgui.ini
-Runtime/textures/*.bin
-Runtime/*.modelcache
+Runtime/models/textures/*.bin
+Runtime/models/*.modelcache
 Runtime/*.blend
 Runtime/*.blend1
 

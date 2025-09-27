@@ -323,7 +323,7 @@ std::shared_ptr<Prepath::Texture> loadTexture(const std::string &path)
     using namespace Prepath;
     namespace fs = std::filesystem;
 
-    std::string newPath = path.substr(1, path.size() - 1);
+    std::string newPath = path;
 
     PREPATH_LOG_INFO("Loading texture: {}", newPath.c_str());
 

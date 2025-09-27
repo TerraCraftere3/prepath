@@ -91,9 +91,44 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
 // #define DEMO_IMPORT_SPONZA_TREES    // Tree Sponza Addon
 // #define DEMO_IMPORT_SPONZA_IVY      // Ivy Sponza Addon
 // #define DEMO_IMPORT_SAN_MIGUEL      //
-#define DEMO_IMPORT_ERATO   // Statue
-#define DEMO_IMPORT_DRAGON  // Dragon
-#define DEMO_IMPORT_GALLERY // Gallery
+#define DEMO_IMPORT_ERATO // Statue
+// #define DEMO_IMPORT_DRAGON // Dragon
+// #define DEMO_IMPORT_GALLERY // Gallery
+
+void printExtension(const std::string &name, int indent = 1)
+{
+    PREPATH_LOG_INFO("{}> {}", std::string(indent, '    '), name);
+}
+
+void printExtensions()
+{
+    PREPATH_LOG_INFO("Loaded extension into client: ");
+    printExtension("Scenes", 1);
+#ifdef DEMO_IMPORT_SPONZA
+    printExtension("Sponza Base", 2);
+#ifdef DEMO_IMPORT_SPONZA_CURTAINS
+    printExtension("Sponza Curtains", 3);
+#endif
+#ifdef DEMO_IMPORT_SPONZA_TREES
+    printExtension("Sponza Ivy", 3);
+#endif
+#ifdef DEMO_IMPORT_SPONZA_IVY
+    printExtension("Sponza Tree", 3);
+#endif
+#endif
+#ifdef DEMO_IMPORT_SAN_MIGUEL
+    printExtension("San Miguel", 2);
+#endif
+#ifdef DEMO_IMPORT_ERATO
+    printExtension("Erato", 2);
+#endif
+#ifdef DEMO_IMPORT_DRAGON
+    printExtension("Dragon", 2);
+#endif
+#ifdef DEMO_IMPORT_GALLERY
+    printExtension("Gallery", 2);
+#endif
+}
 
 int main()
 {
@@ -125,25 +160,27 @@ int main()
                   { spdlog::critical("{}", msg); });
     ctx.setShaderPath("shader");
 
+    printExtensions();
+
     // ---- DEMO SETUP ----
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
     std::vector<std::string> faces{
-        "textures/right.jpg",
-        "textures/left.jpg",
-        "textures/top.jpg",
-        "textures/bottom.jpg",
-        "textures/front.jpg",
-        "textures/back.jpg"};
+        "models/textures/right.jpg",
+        "models/textures/left.jpg",
+        "models/textures/top.jpg",
+        "models/textures/bottom.jpg",
+        "models/textures/front.jpg",
+        "models/textures/back.jpg"};
     scene.skybox = loadSkybox(faces);
     auto settings = Prepath::RenderSettings();
+    settings.culling = false;
     settings.cam.Position = glm::vec3(0, 1.5f, 4.0f);
-    // settings.cam.Pitch = 45;
     settings.cam.updateCameraVectors();
 
 #ifdef DEMO_IMPORT_SPONZA
     bool showSponza = true;
-    auto sponza_meshes = loadModelWithCache("NewSponza_Main_glTF_003.gltf");
+    auto sponza_meshes = loadModelWithCache("models/NewSponza_Main_glTF_003.gltf");
     for (auto mesh : sponza_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -153,7 +190,7 @@ int main()
 
 #ifdef DEMO_IMPORT_SPONZA_CURTAINS
     bool showCurtains = true;
-    auto curtains_meshes = loadModelWithCache("NewSponza_Curtains_glTF.gltf");
+    auto curtains_meshes = loadModelWithCache("models/NewSponza_Curtains_glTF.gltf");
     for (auto mesh : curtains_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -164,7 +201,7 @@ int main()
 
 #ifdef DEMO_IMPORT_SPONZA_IVY
     bool showIvy = false;
-    auto ivy_meshes = loadModelWithCache("NewSponza_IvyGrowth_glTF.gltf");
+    auto ivy_meshes = loadModelWithCache("models/NewSponza_IvyGrowth_glTF.gltf");
     for (auto mesh : ivy_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -175,7 +212,7 @@ int main()
 
 #ifdef DEMO_IMPORT_SPONZA_TREES
     bool showTree = false;
-    auto tree_meshes = loadModelWithCache("NewSponza_CypressTree_glTF.gltf");
+    auto tree_meshes = loadModelWithCache("models/NewSponza_CypressTree_glTF.gltf");
     for (auto mesh : tree_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -187,7 +224,7 @@ int main()
 
 #ifdef DEMO_IMPORT_SAN_MIGUEL
     bool showSanMiguel = false;
-    auto san_miguel_meshes = loadModelWithCache("san-miguel.gltf");
+    auto san_miguel_meshes = loadModelWithCache("models/san-miguel.gltf");
     for (auto mesh : san_miguel_meshes)
     {
         mesh->hidden = !showSanMiguel;
@@ -197,7 +234,7 @@ int main()
 
 #ifdef DEMO_IMPORT_ERATO
     bool showErato = false;
-    auto erato_meshes = loadModelWithCache("erato.obj");
+    auto erato_meshes = loadModelWithCache("models/erato.obj");
     for (auto mesh : erato_meshes)
     {
         mesh->modelMatrix = glm::scale(mesh->modelMatrix, glm::vec3(0.2f));
@@ -208,7 +245,7 @@ int main()
 
 #ifdef DEMO_IMPORT_GALLERY
     bool showGallery = false;
-    auto gallery_meshes = loadModelWithCache("gallery.obj");
+    auto gallery_meshes = loadModelWithCache("models/gallery.obj");
     for (auto mesh : gallery_meshes)
     {
         mesh->hidden = !showGallery;
@@ -219,13 +256,13 @@ int main()
 #ifdef DEMO_IMPORT_DRAGON
     bool showDragon = true;
     auto dragon_mat = Prepath::Material::generateMaterial();
-    dragon_mat->albedo = loadTexture("/textures/marble_0017_color_2k.jpg");
-    dragon_mat->normal = loadTexture("/textures/marble_0017_normal_opengl_2k.png");
-    dragon_mat->roughness = loadTexture("/textures/marble_0017_roughness_2k.jpg");
-    dragon_mat->ao = loadTexture("/textures/marble_0017_ao_2k.jpg");
+    dragon_mat->albedo = loadTexture("models/textures/marble_0017_color_2k.jpg");
+    dragon_mat->normal = loadTexture("models/textures/marble_0017_normal_opengl_2k.png");
+    dragon_mat->roughness = loadTexture("models/textures/marble_0017_roughness_2k.jpg");
+    dragon_mat->ao = loadTexture("models/textures/marble_0017_ao_2k.jpg");
     dragon_mat->tint = glm::vec3(152.0f / 255.0f, 241.0f / 255.0f, 115.0f / 255.0f);
 
-    auto dragon_meshes = loadModelWithCache("StandfordDragon.obj");
+    auto dragon_meshes = loadModelWithCache("models/StandfordDragon.obj");
     for (auto mesh : dragon_meshes)
     {
         mesh->material = dragon_mat;
