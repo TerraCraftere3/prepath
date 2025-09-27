@@ -18,7 +18,8 @@ namespace Prepath
         bounds = AABB();
         for (auto mesh : m_Meshes)
         {
-            bounds = AABB(bounds, mesh->bounds * mesh->modelMatrix);
+            if (!mesh->hidden)
+                bounds = AABB(bounds, mesh->bounds * mesh->modelMatrix);
         }
     }
 }

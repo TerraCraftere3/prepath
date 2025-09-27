@@ -186,38 +186,41 @@ namespace Prepath
 
         for (auto mesh : scene.getMeshes())
         {
-            shader->setUniformMat4f("uModel", mesh->modelMatrix);
-            glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(mesh->modelMatrix)));
-            shader->setUniformMat3f("uNormalMatrix", normalMatrix);
-            if (mesh->material)
+            if (!mesh->hidden)
             {
-                auto mat = mesh->material;
-                shader->setUniform3f("uTint", mat->tint);
+                shader->setUniformMat4f("uModel", mesh->modelMatrix);
+                glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(mesh->modelMatrix)));
+                shader->setUniformMat3f("uNormalMatrix", normalMatrix);
+                if (mesh->material)
+                {
+                    auto mat = mesh->material;
+                    shader->setUniform3f("uTint", mat->tint);
 
-                glActiveTexture(GL_TEXTURE0 + 1);
-                glBindTexture(GL_TEXTURE_2D, mat->albedo->getID());
-                shader->setUniform1i("uAlbedoMap", 1);
+                    glActiveTexture(GL_TEXTURE0 + 1);
+                    glBindTexture(GL_TEXTURE_2D, mat->albedo->getID());
+                    shader->setUniform1i("uAlbedoMap", 1);
 
-                glActiveTexture(GL_TEXTURE0 + 2);
-                glBindTexture(GL_TEXTURE_2D, mat->normal->getID());
-                shader->setUniform1i("uNormalMap", 2);
+                    glActiveTexture(GL_TEXTURE0 + 2);
+                    glBindTexture(GL_TEXTURE_2D, mat->normal->getID());
+                    shader->setUniform1i("uNormalMap", 2);
 
-                glActiveTexture(GL_TEXTURE0 + 3);
-                glBindTexture(GL_TEXTURE_2D, mat->roughness->getID());
-                shader->setUniform1i("uRoughnessMap", 3);
+                    glActiveTexture(GL_TEXTURE0 + 3);
+                    glBindTexture(GL_TEXTURE_2D, mat->roughness->getID());
+                    shader->setUniform1i("uRoughnessMap", 3);
 
-                glActiveTexture(GL_TEXTURE0 + 4);
-                glBindTexture(GL_TEXTURE_2D, mat->metal->getID());
-                shader->setUniform1i("uMetallicMap", 4);
+                    glActiveTexture(GL_TEXTURE0 + 4);
+                    glBindTexture(GL_TEXTURE_2D, mat->metal->getID());
+                    shader->setUniform1i("uMetallicMap", 4);
 
-                glActiveTexture(GL_TEXTURE0 + 5);
-                glBindTexture(GL_TEXTURE_2D, mat->ao->getID());
-                shader->setUniform1i("uAOMap", 5);
+                    glActiveTexture(GL_TEXTURE0 + 5);
+                    glBindTexture(GL_TEXTURE_2D, mat->ao->getID());
+                    shader->setUniform1i("uAOMap", 5);
+                }
+                mesh->draw();
+                m_Statistics.drawCallCount += mesh->getDrawCallCount();
+                m_Statistics.triangleCount += mesh->getTriangleCount();
+                m_Statistics.vertexCount += mesh->getVertexCount();
             }
-            mesh->draw();
-            m_Statistics.drawCallCount += mesh->getDrawCallCount();
-            m_Statistics.triangleCount += mesh->getTriangleCount();
-            m_Statistics.vertexCount += mesh->getVertexCount();
         }
     }
 

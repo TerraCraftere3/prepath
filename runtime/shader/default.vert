@@ -4,6 +4,7 @@ layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in vec3 aTangent;
 layout(location = 4) in vec3 aBitangent;
+layout(location = 5) in int aTriangleID;
 
 uniform mat4 uModel;
 uniform mat4 uView;
@@ -15,6 +16,7 @@ out vec3 WorldPos;
 out vec2 TexCoord;
 out vec4 WorldPosLightSpace;
 out mat3 TBN;
+flat out int vTriangleID;
 
 void main() {
     mat4 uMVP = uProjection * uView * uModel;
@@ -29,4 +31,6 @@ void main() {
     vec3 B = normalize(uNormalMatrix * aBitangent);
     vec3 N = normalize(uNormalMatrix * aNormal);
     TBN = mat3(T, B, N);
+
+    vTriangleID = aTriangleID;
 }

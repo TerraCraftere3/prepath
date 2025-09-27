@@ -18,6 +18,7 @@ in vec3 WorldPos;
 in vec2 TexCoord;
 in vec4 WorldPosLightSpace;
 in mat3 TBN;
+flat in int vTriangleID;
 
 // ----------------------------------------------------------------------------
 // Shadow Calculation with PCF
@@ -90,29 +91,41 @@ vec3 getNormalFromMap() {
 void main() {
     // Debug modes
   if(uDebugTexture == 1) {
-    FragColor = vec4(texture(uAlbedoMap, TexCoord).rgb, 1.0);
+    FragColor = vec4(TexCoord, 0.0, 1.0);
     return;
   }
   if(uDebugTexture == 2) {
+    FragColor = vec4(texture(uAlbedoMap, TexCoord).rgb, 1.0);
+    return;
+  }
+  if(uDebugTexture == 3) {
     vec3 normal = getNormalFromMap();
     FragColor = vec4(normal * 0.5 + 0.5, 1.0);
     return;
   }
-  if(uDebugTexture == 3) {
+  if(uDebugTexture == 4) {
     FragColor = vec4(vec3(texture(uRoughnessMap, TexCoord).g), 1.0);
     return;
   }
-  if(uDebugTexture == 4) {
+  if(uDebugTexture == 5) {
     FragColor = vec4(vec3(texture(uMetallicMap, TexCoord).b), 1.0);
     return;
   }
-  if(uDebugTexture == 5) {
+  if(uDebugTexture == 6) {
     FragColor = vec4(vec3(texture(uAOMap, TexCoord).r), 1.0);
     return;
   }
-  if(uDebugTexture == 6) {
+  if(uDebugTexture == 7) {
     float shadow = ShadowCalculationPCF(WorldPosLightSpace);
     FragColor = vec4(vec3(shadow), 1.0);
+    return;
+  }
+  if(uDebugTexture == 8) {
+    int id = vTriangleID;
+    float r = float((id * 37) % 255) / 255.0;
+    float g = float((id * 59) % 255) / 255.0;
+    float b = float((id * 83) % 255) / 255.0;
+    FragColor = vec4(r, g, b, 1.0);
     return;
   }
 

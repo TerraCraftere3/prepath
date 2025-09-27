@@ -500,8 +500,6 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModelWithCache(const std::string
     using namespace Prepath;
     namespace fs = std::filesystem;
 
-    PREPATH_LOG_INFO("Loading model with cache: {}", path.c_str());
-
     std::string cacheFile = path + ".modelcache";
     std::string modelDir = fs::path(path).parent_path().string();
 
@@ -520,7 +518,7 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModelWithCache(const std::string
     if (useCache)
     {
         // Load from cache
-        PREPATH_LOG_INFO("Loading model from cache");
+        PREPATH_LOG_INFO("Loading model from cache: {}", path.c_str());
         std::ifstream cacheStream(cacheFile, std::ios::binary);
         if (cacheStream)
         {
@@ -583,7 +581,7 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModelWithCache(const std::string
     }
 
     // Load from original file and create cache
-    PREPATH_LOG_INFO("Loading model from file and creating cache");
+    PREPATH_LOG_INFO("Loading model and creating cache: {}", path.c_str());
 
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(

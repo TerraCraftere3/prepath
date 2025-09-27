@@ -9,6 +9,7 @@ struct Vertex
     glm::vec2 texCoord;
     glm::vec3 tangent;
     glm::vec3 bitangent;
+    int triangleID;
 };
 
 namespace Prepath
@@ -57,9 +58,12 @@ namespace Prepath
 
     void Mesh::draw() const
     {
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-        glBindVertexArray(0);
+        if (!hidden)
+        {
+            glBindVertexArray(VAO);
+            glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+            glBindVertexArray(0);
+        }
     }
 
     std::shared_ptr<Mesh> Mesh::generateMesh(
@@ -144,6 +148,8 @@ namespace Prepath
 
         for (size_t i = 0; i < vertexCount; ++i)
         {
+            int triID = static_cast<int>(i / 3);
+            vertices[i].triangleID = triID;
             vertices[i].position = positions[i];
             vertices[i].normal = normals[i];
             vertices[i].texCoord = texCoords[i];
@@ -183,6 +189,10 @@ namespace Prepath
         // Bitangent
         glEnableVertexAttribArray(4);
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, bitangent));
+
+        // Triangle ID
+        glEnableVertexAttribArray(5);
+        glVertexAttribIPointer(5, 1, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, triangleID));
 
         glBindVertexArray(0);
     }

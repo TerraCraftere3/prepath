@@ -86,6 +86,15 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
     settings.cam.updateCameraVectors();
 }
 
+#define DEMO_IMPORT_SPONZA          // Sponza
+#define DEMO_IMPORT_SPONZA_CURTAINS // Curtains Sponza Addon
+// #define DEMO_IMPORT_SPONZA_TREES    // Tree Sponza Addon
+// #define DEMO_IMPORT_SPONZA_IVY      // Ivy Sponza Addon
+// #define DEMO_IMPORT_SAN_MIGUEL      //
+#define DEMO_IMPORT_ERATO   // Statue
+#define DEMO_IMPORT_DRAGON  // Dragon
+#define DEMO_IMPORT_GALLERY // Gallery
+
 int main()
 {
     // ---- INIT CODE ----
@@ -128,24 +137,104 @@ int main()
         "textures/back.jpg"};
     scene.skybox = loadSkybox(faces);
     auto settings = Prepath::RenderSettings();
-    settings.cam.Position = glm::vec3(0, 3.0f, 4.0f);
-    settings.cam.Pitch = 45;
+    settings.cam.Position = glm::vec3(0, 1.5f, 4.0f);
+    // settings.cam.Pitch = 45;
     settings.cam.updateCameraVectors();
 
+#ifdef DEMO_IMPORT_SPONZA
+    bool showSponza = true;
     auto sponza_meshes = loadModelWithCache("NewSponza_Main_glTF_003.gltf");
     for (auto mesh : sponza_meshes)
     {
-        mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
-        scene.addMesh(mesh);
-    }
-    auto curtains_meshes = loadModelWithCache("NewSponza_Curtains_glTF.gltf");
-    for (auto mesh : curtains_meshes)
-    {
-        mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
+        mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
+        mesh->hidden = !showSponza;
         scene.addMesh(mesh);
     }
 
-    scene.lightDir = glm::vec3(0.1f, 0.8f, 0.5f);
+#ifdef DEMO_IMPORT_SPONZA_CURTAINS
+    bool showCurtains = true;
+    auto curtains_meshes = loadModelWithCache("NewSponza_Curtains_glTF.gltf");
+    for (auto mesh : curtains_meshes)
+    {
+        mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
+        mesh->hidden = !showCurtains;
+        scene.addMesh(mesh);
+    }
+#endif
+
+#ifdef DEMO_IMPORT_SPONZA_IVY
+    bool showIvy = false;
+    auto ivy_meshes = loadModelWithCache("NewSponza_IvyGrowth_glTF.gltf");
+    for (auto mesh : ivy_meshes)
+    {
+        mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
+        mesh->hidden = !showIvy;
+        scene.addMesh(mesh);
+    }
+#endif
+
+#ifdef DEMO_IMPORT_SPONZA_TREES
+    bool showTree = false;
+    auto tree_meshes = loadModelWithCache("NewSponza_CypressTree_glTF.gltf");
+    for (auto mesh : tree_meshes)
+    {
+        mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
+        mesh->hidden = !showTree;
+        scene.addMesh(mesh);
+    }
+#endif
+#endif
+
+#ifdef DEMO_IMPORT_SAN_MIGUEL
+    bool showSanMiguel = false;
+    auto san_miguel_meshes = loadModelWithCache("san-miguel.gltf");
+    for (auto mesh : san_miguel_meshes)
+    {
+        mesh->hidden = !showSanMiguel;
+        scene.addMesh(mesh);
+    }
+#endif
+
+#ifdef DEMO_IMPORT_ERATO
+    bool showErato = false;
+    auto erato_meshes = loadModelWithCache("erato.obj");
+    for (auto mesh : erato_meshes)
+    {
+        mesh->modelMatrix = glm::scale(mesh->modelMatrix, glm::vec3(0.2f));
+        mesh->hidden = !showErato;
+        scene.addMesh(mesh);
+    }
+#endif
+
+#ifdef DEMO_IMPORT_GALLERY
+    bool showGallery = false;
+    auto gallery_meshes = loadModelWithCache("gallery.obj");
+    for (auto mesh : gallery_meshes)
+    {
+        mesh->hidden = !showGallery;
+        scene.addMesh(mesh);
+    }
+#endif
+
+#ifdef DEMO_IMPORT_DRAGON
+    bool showDragon = true;
+    auto dragon_mat = Prepath::Material::generateMaterial();
+    dragon_mat->albedo = loadTexture("/textures/marble_0017_color_2k.jpg");
+    dragon_mat->normal = loadTexture("/textures/marble_0017_normal_opengl_2k.png");
+    dragon_mat->roughness = loadTexture("/textures/marble_0017_roughness_2k.jpg");
+    dragon_mat->ao = loadTexture("/textures/marble_0017_ao_2k.jpg");
+    dragon_mat->tint = glm::vec3(152.0f / 255.0f, 241.0f / 255.0f, 115.0f / 255.0f);
+
+    auto dragon_meshes = loadModelWithCache("StandfordDragon.obj");
+    for (auto mesh : dragon_meshes)
+    {
+        mesh->material = dragon_mat;
+        mesh->hidden = !showDragon;
+        scene.addMesh(mesh);
+    }
+#endif
+
+    scene.lightDir = glm::vec3(0.1f, 0.8f, 0.3f);
 
     // ---- RUNTIME CODE ----
     float lastFrame = 0.0f;
@@ -189,13 +278,106 @@ int main()
         ImGui::SeparatorText("Settings");
         ImGui::Checkbox("Display Wireframe", &settings.wireframe);
         ImGui::Checkbox("Display Bounds", &settings.bounds);
-        ImGui::InputInt("Display Textures", &settings.showTexture, 0.5f, 0, 6);
+        ImGui::DragInt("Display Textures", &settings.showTexture, 0.1f, 0);
         ImGui::Checkbox("Culling", &settings.culling);
         ImGui::SeparatorText("Camera");
         ImGui::SliderFloat("Speed", &cameraController.moveSpeed, 10.0f, 50.0f);
         ImGui::Text("Yaw: %.1f, Pitch: %.1f", settings.cam.Yaw, settings.cam.Pitch);
         ImGui::Text("Position: %.1f, %.1f, %.1f", settings.cam.Position.x, settings.cam.Position.y, settings.cam.Position.z);
         ImGui::SeparatorText("Scene");
+#ifdef DEMO_IMPORT_SPONZA
+        if (ImGui::Checkbox("Show Sponza", &showSponza))
+        {
+            for (auto mesh : sponza_meshes)
+                mesh->hidden = !showSponza;
+            if (!showSponza)
+            {
+#ifdef DEMO_IMPORT_SPONZA_CURTAINS
+                showCurtains = false;
+                for (auto mesh : curtains_meshes)
+                    mesh->hidden = true;
+#endif
+#ifdef DEMO_IMPORT_SPONZA_IVY
+                showIvy = false;
+                for (auto mesh : ivy_meshes)
+                    mesh->hidden = true;
+#endif
+#ifdef DEMO_IMPORT_SPONZA_TREES
+                showTree = false;
+                for (auto mesh : tree_meshes)
+                    mesh->hidden = true;
+#endif
+            }
+            scene.updateBounds();
+        }
+        if (showSponza)
+        {
+#ifdef DEMO_IMPORT_SPONZA_CURTAINS
+            if (ImGui::Checkbox("Show Sponza (Curtains)", &showCurtains))
+            {
+                for (auto mesh : curtains_meshes)
+                    mesh->hidden = !showCurtains;
+                scene.updateBounds();
+            }
+#endif
+#ifdef DEMO_IMPORT_SPONZA_IVY
+            if (ImGui::Checkbox("Show Sponza (Ivy)", &showIvy))
+            {
+                for (auto mesh : ivy_meshes)
+                    mesh->hidden = !showIvy;
+                scene.updateBounds();
+            }
+#endif
+#ifdef DEMO_IMPORT_SPONZA_TREES
+            if (ImGui::Checkbox("Show Sponza (Trees)", &showTree))
+            {
+                for (auto mesh : tree_meshes)
+                    mesh->hidden = !showTree;
+                scene.updateBounds();
+            }
+#endif
+        }
+#endif
+#ifdef DEMO_IMPORT_DRAGON
+        if (ImGui::Checkbox("Show Stanford Dragon", &showDragon))
+        {
+            for (auto mesh : dragon_meshes)
+            {
+                mesh->hidden = !showDragon;
+                scene.updateBounds();
+            }
+        }
+#endif
+#ifdef DEMO_IMPORT_SAN_MIGUEL
+        if (ImGui::Checkbox("Show San Miguel", &showSanMiguel))
+        {
+            for (auto mesh : san_miguel_meshes)
+            {
+                mesh->hidden = !showSanMiguel;
+                scene.updateBounds();
+            }
+        }
+#endif
+#ifdef DEMO_IMPORT_ERATO
+        if (ImGui::Checkbox("Show Erato", &showErato))
+        {
+            for (auto mesh : erato_meshes)
+            {
+                mesh->hidden = !showErato;
+                scene.updateBounds();
+            }
+        }
+#endif
+#ifdef DEMO_IMPORT_GALLERY
+        if (ImGui::Checkbox("Show Gallery", &showGallery))
+        {
+            for (auto mesh : gallery_meshes)
+            {
+                mesh->hidden = !showGallery;
+                scene.updateBounds();
+            }
+        }
+#endif
         int meshIndex = 0;
         for (auto &mesh : scene.getMeshes())
         {
@@ -204,6 +386,9 @@ int main()
             std::stringstream ss;
             ss.imbue(std::locale(""));
             ss << mesh->getTriangleCount();
+
+            if (mesh->hidden)
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 
             if (ImGui::TreeNode("Mesh", "Mesh (%s Triangles)", ss.str().c_str()))
             {
@@ -222,6 +407,9 @@ int main()
 
                 ImGui::TreePop();
             }
+
+            if (mesh->hidden)
+                ImGui::PopStyleColor();
 
             ImGui::PopID();
             meshIndex++;

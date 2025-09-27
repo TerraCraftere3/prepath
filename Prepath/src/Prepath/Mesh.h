@@ -43,6 +43,7 @@ namespace Prepath
         GLsizei getDrawCallCount() const { return drawCallCount; }
 
     public:
+        bool hidden = false;
         AABB bounds;
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         std::shared_ptr<Material> material;
