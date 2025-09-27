@@ -41,7 +41,7 @@ namespace Prepath
         Renderer();
         ~Renderer();
         void render(const Scene &scene, const RenderSettings &settings);
-        void renderScene(const Scene &scene, const glm::mat4 &projection, const glm::mat4 &view, const glm::mat4 &lightSpace, std::shared_ptr<Shader> shader, int uDebugTexture = 0);
+        void renderScene(const Scene &scene, const glm::mat4 &projection, const glm::mat4 &view, const glm::mat4 &lightSpace, std::shared_ptr<Shader> shader, const glm::vec3 &uCameraPos = glm::vec3(0.0f), int uDebugTexture = 0);
         unsigned int getDepthTex() { return m_DepthTex; }
         RenderStatistics getStatistics() { return m_Statistics; }
 

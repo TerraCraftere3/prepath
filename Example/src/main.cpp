@@ -129,6 +129,12 @@ int main()
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
         scene.addMesh(mesh);
     }
+    auto curtains_meshes = loadModelWithCache("NewSponza_Curtains_glTF.gltf");
+    for (auto mesh : curtains_meshes)
+    {
+        mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
+        scene.addMesh(mesh);
+    }
 
     scene.lightDir = glm::vec3(0.1f, 0.8f, 0.5f);
 

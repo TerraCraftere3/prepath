@@ -11,25 +11,22 @@ uniform mat4 uProjection;
 uniform mat4 uLightSpace;
 uniform mat3 uNormalMatrix;
 
-out vec3 WorldNormal;
 out vec3 WorldPos;
-out vec4 WorldPosLightSpace;
 out vec2 TexCoord;
+out vec4 WorldPosLightSpace;
 out mat3 TBN;
 
 void main() {
     mat4 uMVP = uProjection * uView * uModel;
-
     gl_Position = uMVP * vec4(aPos, 1.0);
 
     WorldPos = vec3(uModel * vec4(aPos, 1.0));
-    WorldNormal = normalize(uNormalMatrix * aNormal);
     TexCoord = aTexCoord;
     WorldPosLightSpace = uLightSpace * vec4(WorldPos, 1.0);
 
+    // Construct TBN matrix
     vec3 T = normalize(uNormalMatrix * aTangent);
     vec3 B = normalize(uNormalMatrix * aBitangent);
     vec3 N = normalize(uNormalMatrix * aNormal);
-
     TBN = mat3(T, B, N);
 }

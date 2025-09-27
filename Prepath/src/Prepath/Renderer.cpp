@@ -107,7 +107,7 @@ namespace Prepath
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glViewport(0, 0, settings.width, settings.height);
             glCullFace(GL_BACK);
-            renderScene(scene, projection, view, lightSpaceMatrix, m_Shader, settings.showTexture);
+            renderScene(scene, projection, view, lightSpaceMatrix, m_Shader, settings.cam.Position, settings.showTexture);
         }
 
         // ---- BOUNDS ----
@@ -145,7 +145,7 @@ namespace Prepath
 
     void Renderer::renderScene(const Scene &scene, const glm::mat4 &projection,
                                const glm::mat4 &view, const glm::mat4 &lightSpace,
-                               std::shared_ptr<Shader> shader, int uDebugTexture)
+                               std::shared_ptr<Shader> shader, const glm::vec3 &uCameraPos, int uDebugTexture)
     {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -163,6 +163,7 @@ namespace Prepath
         glBindTexture(GL_TEXTURE_2D, m_DepthTex);
         shader->setUniform1i("uDepthMap", 0);
         shader->setUniform1i("uDebugTexture", uDebugTexture);
+        shader->setUniform3f("uCameraPos", uCameraPos);
 
         for (auto mesh : scene.getMeshes())
         {
