@@ -17,5 +17,8 @@ Runtime/*.dll
 Runtime/*.pdb
 Runtime/imgui.ini
 Runtime/textures/*.bin
+Runtime/*.modelcache
+Runtime/*.blend
+Runtime/*.blend1
 
 .vscode
