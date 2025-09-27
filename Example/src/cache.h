@@ -293,6 +293,31 @@ CachedMaterial createCachedMaterial(aiMaterial *aiMat, const std::string &modelD
     return mat;
 }
 
+std::shared_ptr<Prepath::Cubemap> loadSkybox(std::vector<std::string> faces)
+{
+    using namespace Prepath;
+    unsigned char *data[6];
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char *tex_data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (tex_data)
+        {
+            PREPATH_LOG_INFO("Loaded cubemap face: {}", faces[i].c_str());
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, tex_data);
+            data[i] = tex_data;
+        }
+        else
+        {
+            std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(tex_data);
+        }
+    }
+    PREPATH_LOG_INFO("Loaded cubemap ({}x{})", width, height);
+    return Cubemap::generateTexture(data, width, height, nrChannels);
+}
+
 std::shared_ptr<Prepath::Texture> loadTexture(const std::string &path)
 {
     using namespace Prepath;

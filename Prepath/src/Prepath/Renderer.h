@@ -50,7 +50,9 @@ namespace Prepath
         std::shared_ptr<Shader> m_Shader;
         std::shared_ptr<Shader> m_DepthShader;
         std::shared_ptr<Shader> m_BoundsShader;
+        std::shared_ptr<Shader> m_SkyboxShader;
         std::shared_ptr<Mesh> m_BoundsMesh;
+        std::shared_ptr<Mesh> m_SkyboxMesh;
         unsigned int m_DepthFBO;
         unsigned int m_DepthTex;
     };

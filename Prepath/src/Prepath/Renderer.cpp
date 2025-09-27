@@ -13,8 +13,10 @@ namespace Prepath
         m_Shader = Shader::generateShader(PREPATH_READ_SHADER("default.vert").c_str(), PREPATH_READ_SHADER("default.frag").c_str());
         m_DepthShader = Shader::generateShader(PREPATH_READ_SHADER("depth.vert").c_str(), PREPATH_READ_SHADER("depth.frag").c_str());
         m_BoundsShader = Shader::generateShader(PREPATH_READ_SHADER("bounds.vert").c_str(), PREPATH_READ_SHADER("bounds.frag").c_str());
+        m_SkyboxShader = Shader::generateShader(PREPATH_READ_SHADER("skybox.vert").c_str(), PREPATH_READ_SHADER("skybox.frag").c_str());
 
         m_BoundsMesh = Mesh::generateCube(0.5f);
+        m_SkyboxMesh = Mesh::generateCube(1.0f);
 
         glGenFramebuffers(1, &m_DepthFBO);
         glGenTextures(1, &m_DepthTex);
@@ -140,6 +142,23 @@ namespace Prepath
             }
             glEnable(GL_DEPTH_TEST);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+
+        // ---- SKYBOX ----
+        {
+            glDepthFunc(GL_LEQUAL);
+            glDepthMask(GL_FALSE);
+            glDisable(GL_CULL_FACE);
+            m_SkyboxShader->bind();
+            glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(view));
+            m_SkyboxShader->setUniformMat4f("uView", viewNoTranslation);
+            m_SkyboxShader->setUniformMat4f("uProjection", projection);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, scene.skybox->getID());
+            m_SkyboxMesh->draw();
+            glDepthMask(GL_TRUE);
+            m_Statistics.drawCallCount += m_SkyboxMesh->getDrawCallCount();
+            m_Statistics.triangleCount += m_SkyboxMesh->getTriangleCount();
+            m_Statistics.vertexCount += m_SkyboxMesh->getVertexCount();
         }
     }
 

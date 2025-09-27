@@ -79,7 +79,7 @@ namespace Prepath
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
         if (location == -1)
         {
-            PREPATH_LOG_ERROR("Warning: uniform '{}' doesn't exist!", name.c_str());
+            PREPATH_LOG_WARN("Warning: uniform '{}' doesn't exist in shader #{}!", name.c_str(), m_ShaderProgram);
         }
 
         m_UniformLocationCache[name] = location;

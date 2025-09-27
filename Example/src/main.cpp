@@ -119,8 +119,17 @@ int main()
     // ---- DEMO SETUP ----
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
+    std::vector<std::string> faces{
+        "textures/right.jpg",
+        "textures/left.jpg",
+        "textures/top.jpg",
+        "textures/bottom.jpg",
+        "textures/front.jpg",
+        "textures/back.jpg"};
+    scene.skybox = loadSkybox(faces);
     auto settings = Prepath::RenderSettings();
     settings.cam.Position = glm::vec3(0, 3.0f, 4.0f);
+    settings.cam.Pitch = 45;
     settings.cam.updateCameraVectors();
 
     auto sponza_meshes = loadModelWithCache("NewSponza_Main_glTF_003.gltf");
@@ -184,6 +193,7 @@ int main()
         ImGui::Checkbox("Culling", &settings.culling);
         ImGui::SeparatorText("Camera");
         ImGui::SliderFloat("Speed", &cameraController.moveSpeed, 10.0f, 50.0f);
+        ImGui::Text("Yaw: %.1f, Pitch: %.1f", settings.cam.Yaw, settings.cam.Pitch);
         ImGui::Text("Position: %.1f, %.1f, %.1f", settings.cam.Position.x, settings.cam.Position.y, settings.cam.Position.z);
         ImGui::SeparatorText("Scene");
         int meshIndex = 0;

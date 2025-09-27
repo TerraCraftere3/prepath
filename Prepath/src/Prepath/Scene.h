@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 
 #include "Mesh.h"
+#include "Cubemap.h"
 #include "Context.h"
 
 namespace Prepath
@@ -18,7 +19,7 @@ namespace Prepath
     class Scene
     {
     public:
-        Scene() = default;
+        Scene();
 
         // ---- Meshes ----
         void updateBounds();
@@ -31,6 +32,7 @@ namespace Prepath
         const std::vector<std::shared_ptr<Mesh>> &getMeshes() const { return m_Meshes; }
 
     public:
+        std::shared_ptr<Cubemap> skybox;
         glm::vec3 lightDir;
         AABB bounds;
 
