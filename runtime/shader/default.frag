@@ -3,9 +3,15 @@ out vec4 FragColor;
 
 uniform vec3 uTint;
 uniform vec3 uLightDir;
+
 uniform sampler2D uDepthMap;
 uniform sampler2D uAlbedoMap;
 uniform sampler2D uNormalMap;
+uniform sampler2D uRoughnessMap;
+uniform sampler2D uMetallicMap;
+uniform sampler2D uAOMap;
+
+uniform int uDebugTexture; // 0 = normal render, >0 = debug view
 
 in vec3 WorldNormal;
 in vec3 WorldPos;
@@ -32,8 +38,32 @@ float ShadowCalculationPCF(vec4 fragPosLightSpace) {
 }
 
 void main() {
-  //vec3 color = vec3(TexCoord, 0.0);
-  //vec3 color = WorldNormal * 0.5 + 0.5;
+  if(uDebugTexture == 1) {
+    FragColor = vec4(texture(uAlbedoMap, TexCoord).rgb, 1.0);
+    return;
+  }
+  if(uDebugTexture == 2) {
+    FragColor = vec4(texture(uNormalMap, TexCoord).rgb * 0.5 + 0.5, 1.0);
+    return;
+  }
+  if(uDebugTexture == 3) {
+    FragColor = vec4(vec3(texture(uRoughnessMap, TexCoord).g), 1.0);
+    return;
+  }
+  if(uDebugTexture == 4) {
+    FragColor = vec4(vec3(texture(uMetallicMap, TexCoord).b), 1.0);
+    return;
+  }
+  if(uDebugTexture == 5) {
+    FragColor = vec4(vec3(texture(uAOMap, TexCoord).r), 1.0);
+    return;
+  }
+  if(uDebugTexture == 6) {
+    float shadow = ShadowCalculationPCF(WorldPosLightSpace);
+    FragColor = vec4(vec3(shadow), 1.0);
+    return;
+  }
+
   vec3 color = texture(uAlbedoMap, TexCoord).rgb * uTint;
   float shadow = ShadowCalculationPCF(WorldPosLightSpace);
   vec3 directLight = max(dot(WorldNormal, uLightDir), 0.0) * (1.0 - shadow) * color;

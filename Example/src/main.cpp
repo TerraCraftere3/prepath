@@ -123,7 +123,7 @@ int main()
     settings.cam.Position = glm::vec3(0, 3.0f, 4.0f);
     settings.cam.updateCameraVectors();
 
-    auto sponza_meshes = loadModelWithCache("sponza.gltf");
+    auto sponza_meshes = loadModelWithCache("NewSponza_Main_glTF_003.gltf");
     for (auto mesh : sponza_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -151,7 +151,7 @@ int main()
 
         ImGui::SetNextWindowPos({20, 20});
         ImGui::SetNextWindowSizeConstraints(
-            ImVec2(0, settings.height - 40),
+            ImVec2(128 * 3.3f, settings.height - 40),
             ImVec2(FLT_MAX, settings.height - 40));
         ImGui::SetNextWindowBgAlpha(0.5f);
         ImGui::Begin("Debug");
@@ -174,6 +174,7 @@ int main()
         ImGui::SeparatorText("Settings");
         ImGui::Checkbox("Display Wireframe", &settings.wireframe);
         ImGui::Checkbox("Display Bounds", &settings.bounds);
+        ImGui::InputInt("Display Textures", &settings.showTexture, 0.5f, 0, 6);
         ImGui::Checkbox("Culling", &settings.culling);
         ImGui::SeparatorText("Camera");
         ImGui::SliderFloat("Speed", &cameraController.moveSpeed, 10.0f, 50.0f);
@@ -196,6 +197,12 @@ int main()
                 ImGui::Image(mat->albedo->getID(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
                 ImGui::SameLine();
                 ImGui::Image(mat->normal->getID(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::SameLine();
+                ImGui::Image(mat->roughness->getID(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+
+                ImGui::Image(mat->metal->getID(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::SameLine();
+                ImGui::Image(mat->ao->getID(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
 
                 ImGui::TreePop();
             }

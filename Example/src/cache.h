@@ -263,8 +263,7 @@ CachedMaterial createCachedMaterial(aiMaterial *aiMat, const std::string &modelD
     if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS)
         mat.albedoPath = modelDir + "/" + texPath.C_Str();
 
-    if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS ||
-        aiMat->GetTexture(aiTextureType_HEIGHT, 0, &texPath) == AI_SUCCESS)
+    if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS)
         mat.normalPath = modelDir + "/" + texPath.C_Str();
 
     if (aiMat->GetTexture(aiTextureType_METALNESS, 0, &texPath) == AI_SUCCESS)
@@ -305,6 +304,11 @@ std::shared_ptr<Prepath::Texture> loadTexture(const std::string &path)
 
     std::string binPath = newPath + ".bin";
     int width = 0, height = 0;
+
+    if (!fs::exists(newPath))
+    {
+        PREPATH_LOG_INFO("Texture doesnt exist: {}", newPath.c_str());
+    }
 
     // --- Try loading cached .bin ---
     if (fs::exists(binPath))
@@ -520,10 +524,14 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModelWithCache(const std::string
                 if (!cachedMat.normalPath.empty() && textureCache.count(cachedMat.normalPath))
                     mat->normal = textureCache[cachedMat.normalPath];
 
-                // Set other material properties
-                // mat->diffuseColor = cachedMat.diffuseColor;
-                // mat->metallic = cachedMat.metallic;
-                // mat->roughness = cachedMat.roughness;
+                if (!cachedMat.roughnessPath.empty() && textureCache.count(cachedMat.roughnessPath))
+                    mat->roughness = textureCache[cachedMat.roughnessPath];
+
+                if (!cachedMat.metallicPath.empty() && textureCache.count(cachedMat.metallicPath))
+                    mat->metal = textureCache[cachedMat.metallicPath];
+
+                if (!cachedMat.aoPath.empty() && textureCache.count(cachedMat.aoPath))
+                    mat->ao = textureCache[cachedMat.aoPath];
 
                 materials.push_back(mat);
             }

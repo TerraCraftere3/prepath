@@ -107,7 +107,7 @@ namespace Prepath
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glViewport(0, 0, settings.width, settings.height);
             glCullFace(GL_BACK);
-            renderScene(scene, projection, view, lightSpaceMatrix, m_Shader);
+            renderScene(scene, projection, view, lightSpaceMatrix, m_Shader, settings.showTexture);
         }
 
         // ---- BOUNDS ----
@@ -145,7 +145,7 @@ namespace Prepath
 
     void Renderer::renderScene(const Scene &scene, const glm::mat4 &projection,
                                const glm::mat4 &view, const glm::mat4 &lightSpace,
-                               std::shared_ptr<Shader> shader)
+                               std::shared_ptr<Shader> shader, int uDebugTexture)
     {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -162,6 +162,7 @@ namespace Prepath
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_DepthTex);
         shader->setUniform1i("uDepthMap", 0);
+        shader->setUniform1i("uDebugTexture", uDebugTexture);
 
         for (auto mesh : scene.getMeshes())
         {
@@ -172,9 +173,26 @@ namespace Prepath
             {
                 auto mat = mesh->material;
                 shader->setUniform3f("uTint", mat->tint);
-                glActiveTexture(GL_TEXTURE1);
+
+                glActiveTexture(GL_TEXTURE0 + 1);
                 glBindTexture(GL_TEXTURE_2D, mat->albedo->getID());
                 shader->setUniform1i("uAlbedoMap", 1);
+
+                glActiveTexture(GL_TEXTURE0 + 2);
+                glBindTexture(GL_TEXTURE_2D, mat->normal->getID());
+                shader->setUniform1i("uNormalMap", 2);
+
+                glActiveTexture(GL_TEXTURE0 + 3);
+                glBindTexture(GL_TEXTURE_2D, mat->roughness->getID());
+                shader->setUniform1i("uRoughnessMap", 3);
+
+                glActiveTexture(GL_TEXTURE0 + 4);
+                glBindTexture(GL_TEXTURE_2D, mat->metal->getID());
+                shader->setUniform1i("uMetallicMap", 4);
+
+                glActiveTexture(GL_TEXTURE0 + 5);
+                glBindTexture(GL_TEXTURE_2D, mat->ao->getID());
+                shader->setUniform1i("uAOMap", 5);
             }
             mesh->draw();
             m_Statistics.drawCallCount += mesh->getDrawCallCount();

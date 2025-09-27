@@ -23,6 +23,7 @@ namespace Prepath
         bool wireframe = false;
         bool culling = true;
         bool bounds = false;
+        int showTexture = 0; // 0 = normal render, >0 = debug view
         Camera cam;
         RenderSettings();
     };
@@ -40,7 +41,7 @@ namespace Prepath
         Renderer();
         ~Renderer();
         void render(const Scene &scene, const RenderSettings &settings);
-        void renderScene(const Scene &scene, const glm::mat4 &projection, const glm::mat4 &view, const glm::mat4 &lightSpace, std::shared_ptr<Shader> shader);
+        void renderScene(const Scene &scene, const glm::mat4 &projection, const glm::mat4 &view, const glm::mat4 &lightSpace, std::shared_ptr<Shader> shader, int uDebugTexture = 0);
         unsigned int getDepthTex() { return m_DepthTex; }
         RenderStatistics getStatistics() { return m_Statistics; }
 
