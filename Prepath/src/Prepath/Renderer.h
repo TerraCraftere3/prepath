@@ -12,8 +12,6 @@
 #include "Camera.h"
 #include "Shader.h"
 
-#define PREPATH_SHADOWMAP_SIZE 1024 * 4
-
 namespace Prepath
 {
     struct RenderSettings

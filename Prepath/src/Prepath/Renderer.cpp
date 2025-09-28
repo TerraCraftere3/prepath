@@ -188,6 +188,32 @@ namespace Prepath
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
+        // ---- Point Lights ----
+        for (auto light : scene.getPointLights())
+        {
+            float aspect = (float)PREPATH_SHADOWMAP_SIZE / (float)PREPATH_SHADOWMAP_SIZE;
+            float near = 1.0f;
+            float far = 25.0f;
+            auto lightPos = light->position;
+            glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, near, far);
+            std::vector<glm::mat4> shadowTransforms;
+            shadowTransforms.push_back(shadowProj *
+                                       glm::lookAt(lightPos, lightPos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+            shadowTransforms.push_back(shadowProj *
+                                       glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+            shadowTransforms.push_back(shadowProj *
+                                       glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
+            shadowTransforms.push_back(shadowProj *
+                                       glm::lookAt(lightPos, lightPos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
+            shadowTransforms.push_back(shadowProj *
+                                       glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
+            shadowTransforms.push_back(shadowProj *
+                                       glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
+            glBindFramebuffer(GL_FRAMEBUFFER, light->m_DepthFramebuffer);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
         // ---- SCENE ----
         {
             if (settings.culling)
@@ -249,7 +275,9 @@ namespace Prepath
             glm::mat4 viewNoTranslation = glm::mat4(glm::mat3(view));
             m_SkyboxShader->setUniformMat4f("uView", viewNoTranslation);
             m_SkyboxShader->setUniformMat4f("uProjection", projection);
+            glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_CUBE_MAP, scene.skybox->getID());
+            m_SkyboxShader->setUniform1i("uSkybox", 0);
             m_SkyboxMesh->draw();
             glDepthMask(GL_TRUE);
             m_Statistics.drawCallCount += m_SkyboxMesh->getDrawCallCount();

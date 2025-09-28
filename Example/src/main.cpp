@@ -181,14 +181,14 @@ int main()
     // ---- DEMO SETUP ----
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
-    /*std::vector<std::string> faces{
+    std::vector<std::string> faces{
         "models/textures/right.jpg",
         "models/textures/left.jpg",
         "models/textures/top.jpg",
         "models/textures/bottom.jpg",
         "models/textures/front.jpg",
         "models/textures/back.jpg"};
-    scene.skybox = loadSkybox(faces);*/
+    scene.skybox = loadSkybox(faces);
     auto settings = Prepath::RenderSettings();
     settings.culling = false;
     settings.cam.Position = glm::vec3(0, 1.5f, 4.0f);
@@ -213,6 +213,7 @@ int main()
         mesh->hidden = !showSponza;
         scene.addMesh(mesh);
     }
+    scene.hasSkyLight = false;
 
 #ifdef DEMO_IMPORT_SPONZA_CURTAINS
     bool showCurtains = true;
@@ -492,10 +493,12 @@ int main()
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
             if (ImGui::TreeNode("Light", "Light (%.0f, %.0f, %.0f)", light->color.r * 255, light->color.g * 255, light->color.b * 255))
             {
-                ImGui::ColorEdit3("Position", glm::value_ptr(light->position));
+                ImGui::DragFloat3("Position", glm::value_ptr(light->position), 0.75f);
                 ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
                 ImGui::DragFloat("Intensity", &light->intensity, 0.3f, 1.0f);
                 ImGui::DragFloat("Range", &light->range, 0.3f, 1.0f);
+
+                ImGui::Image(light->copyCubemapFaceToTexture(PREPATH_CUBEMAP_POSX), {128, 128});
 
                 ImGui::TreePop();
             }
