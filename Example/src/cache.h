@@ -28,6 +28,23 @@ struct CachedMaterial
     float roughness = 1.0f;
 };
 
+struct CachedLight
+{
+    enum Type
+    {
+        DIRECTIONAL,
+        POINT,
+        SPOT
+    } type;
+    glm::vec3 position = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 direction = glm::vec3(0.0f, -1.0f, 0.0f);
+    glm::vec3 color = glm::vec3(1.0f);
+    float intensity = 1.0f;
+    float range = 100.0f;    // For point/spot lights
+    float innerCone = 30.0f; // For spot lights
+    float outerCone = 45.0f; // For spot lights
+};
+
 struct CachedMeshData
 {
     std::vector<glm::vec3> positions;
@@ -42,6 +59,7 @@ struct CachedModelData
 {
     std::vector<CachedMeshData> meshes;
     std::vector<CachedMaterial> materials;
+    std::vector<CachedLight> lights;
     std::vector<std::string> allTexturePaths; // ALL textures found in model
 };
 
@@ -56,6 +74,22 @@ template <typename T>
 void readBinary(std::ifstream &file, T &value)
 {
     file.read(reinterpret_cast<char *>(&value), sizeof(T));
+}
+
+void writeVec3(std::ofstream &file, const glm::vec3 &vec)
+{
+    writeBinary(file, vec.x);
+    writeBinary(file, vec.y);
+    writeBinary(file, vec.z);
+}
+
+glm::vec3 readVec3(std::ifstream &file)
+{
+    glm::vec3 vec;
+    readBinary(file, vec.x);
+    readBinary(file, vec.y);
+    readBinary(file, vec.z);
+    return vec;
 }
 
 void writeString(std::ofstream &file, const std::string &str)
@@ -100,6 +134,28 @@ std::vector<T> readVector(std::ifstream &file)
     return vec;
 }
 
+inline glm::mat4 convertAssimpMatrix(const aiMatrix4x4 &m)
+{
+    glm::mat4 result;
+    result[0][0] = m.a1;
+    result[1][0] = m.a2;
+    result[2][0] = m.a3;
+    result[3][0] = m.a4;
+    result[0][1] = m.b1;
+    result[1][1] = m.b2;
+    result[2][1] = m.b3;
+    result[3][1] = m.b4;
+    result[0][2] = m.c1;
+    result[1][2] = m.c2;
+    result[2][2] = m.c3;
+    result[3][2] = m.c4;
+    result[0][3] = m.d1;
+    result[1][3] = m.d2;
+    result[2][3] = m.d3;
+    result[3][3] = m.d4;
+    return result;
+}
+
 // Cache serialization functions
 void writeCachedMaterial(std::ofstream &file, const CachedMaterial &mat)
 {
@@ -109,7 +165,7 @@ void writeCachedMaterial(std::ofstream &file, const CachedMaterial &mat)
     writeString(file, mat.roughnessPath);
     writeString(file, mat.emissivePath);
     writeString(file, mat.aoPath);
-    writeBinary(file, mat.diffuseColor);
+    writeVec3(file, mat.diffuseColor);
     writeBinary(file, mat.metallic);
     writeBinary(file, mat.roughness);
 }
@@ -123,10 +179,38 @@ CachedMaterial readCachedMaterial(std::ifstream &file)
     mat.roughnessPath = readString(file);
     mat.emissivePath = readString(file);
     mat.aoPath = readString(file);
-    readBinary(file, mat.diffuseColor);
+    mat.diffuseColor = readVec3(file);
     readBinary(file, mat.metallic);
     readBinary(file, mat.roughness);
     return mat;
+}
+
+void writeCachedLight(std::ofstream &file, const CachedLight &light)
+{
+    writeBinary(file, static_cast<uint32_t>(light.type));
+    writeVec3(file, light.position);
+    writeVec3(file, light.direction);
+    writeVec3(file, light.color);
+    writeBinary(file, light.intensity);
+    writeBinary(file, light.range);
+    writeBinary(file, light.innerCone);
+    writeBinary(file, light.outerCone);
+}
+
+CachedLight readCachedLight(std::ifstream &file)
+{
+    CachedLight light;
+    uint32_t type;
+    readBinary(file, type);
+    light.type = static_cast<CachedLight::Type>(type);
+    light.position = readVec3(file);
+    light.direction = readVec3(file);
+    light.color = readVec3(file);
+    readBinary(file, light.intensity);
+    readBinary(file, light.range);
+    readBinary(file, light.innerCone);
+    readBinary(file, light.outerCone);
+    return light;
 }
 
 void writeCachedMeshData(std::ofstream &file, const CachedMeshData &mesh)
@@ -169,6 +253,13 @@ void writeCachedModelData(std::ofstream &file, const CachedModelData &model)
         writeCachedMaterial(file, mat);
     }
 
+    uint32_t lightCount = static_cast<uint32_t>(model.lights.size());
+    writeBinary(file, lightCount);
+    for (const auto &light : model.lights)
+    {
+        writeCachedLight(file, light);
+    }
+
     // Write all texture paths
     uint32_t textureCount = static_cast<uint32_t>(model.allTexturePaths.size());
     writeBinary(file, textureCount);
@@ -200,6 +291,15 @@ CachedModelData readCachedModelData(std::ifstream &file)
         model.materials.push_back(readCachedMaterial(file));
     }
 
+    // Read lights
+    uint32_t lightCount;
+    readBinary(file, lightCount);
+    model.lights.reserve(lightCount);
+    for (uint32_t i = 0; i < lightCount; ++i)
+    {
+        model.lights.push_back(readCachedLight(file));
+    }
+
     // Read all texture paths
     uint32_t textureCount;
     readBinary(file, textureCount);
@@ -210,6 +310,236 @@ CachedModelData readCachedModelData(std::ifstream &file)
     }
 
     return model;
+}
+
+// Helper function to find light nodes in the scene graph
+void findLightNodes(aiNode *node, const aiScene *scene, const glm::mat4 &parentTransform,
+                    std::vector<CachedLight> &lights)
+{
+    glm::mat4 nodeTransform = parentTransform * convertAssimpMatrix(node->mTransformation);
+
+    // Check if this node corresponds to a light
+    for (unsigned int i = 0; i < scene->mNumLights; ++i)
+    {
+        aiLight *aiLight = scene->mLights[i];
+
+        // Check if the light name matches the node name
+        if (std::string(aiLight->mName.C_Str()) == std::string(node->mName.C_Str()))
+        {
+            CachedLight light;
+
+            PREPATH_LOG_INFO("Processing light '{}' at node '{}'",
+                             aiLight->mName.C_Str(), node->mName.C_Str());
+
+            // Convert light type
+            switch (aiLight->mType)
+            {
+            case aiLightSource_DIRECTIONAL:
+                light.type = CachedLight::DIRECTIONAL;
+                break;
+            case aiLightSource_POINT:
+                light.type = CachedLight::POINT;
+                break;
+            case aiLightSource_SPOT:
+                light.type = CachedLight::SPOT;
+                break;
+            default:
+                continue; // Skip unsupported light types
+            }
+
+            // For directional lights, position doesn't matter much, but we'll use the node position
+            // For point/spot lights, use the node's world position
+            glm::vec4 worldPos = nodeTransform * glm::vec4(aiLight->mPosition.x, aiLight->mPosition.y, aiLight->mPosition.z, 1.0f);
+            light.position = glm::vec3(worldPos);
+
+            // Transform direction by the node's rotation only (no translation)
+            glm::vec3 localDir(aiLight->mDirection.x, aiLight->mDirection.y, aiLight->mDirection.z);
+            glm::mat3 rotationMatrix = glm::mat3(nodeTransform);
+            light.direction = glm::normalize(rotationMatrix * localDir);
+
+            // Set color - try different color sources
+            light.color = glm::vec3(0.0f); // Default to black
+
+            // Try diffuse color first
+            if (aiLight->mColorDiffuse.r > 0.0f || aiLight->mColorDiffuse.g > 0.0f || aiLight->mColorDiffuse.b > 0.0f)
+            {
+                light.color = glm::vec3(aiLight->mColorDiffuse.r, aiLight->mColorDiffuse.g, aiLight->mColorDiffuse.b);
+            }
+            // Try specular color if diffuse is black
+            else if (aiLight->mColorSpecular.r > 0.0f || aiLight->mColorSpecular.g > 0.0f || aiLight->mColorSpecular.b > 0.0f)
+            {
+                light.color = glm::vec3(aiLight->mColorSpecular.r, aiLight->mColorSpecular.g, aiLight->mColorSpecular.b);
+            }
+            // Try ambient color if others are black
+            else if (aiLight->mColorAmbient.r > 0.0f || aiLight->mColorAmbient.g > 0.0f || aiLight->mColorAmbient.b > 0.0f)
+            {
+                light.color = glm::vec3(aiLight->mColorAmbient.r, aiLight->mColorAmbient.g, aiLight->mColorAmbient.b);
+            }
+            // Default to white if all colors are black
+            else
+            {
+                light.color = glm::vec3(1.0f, 1.0f, 1.0f);
+            }
+
+            // Calculate intensity from the maximum color component
+            light.intensity = std::max({light.color.r, light.color.g, light.color.b});
+            if (light.intensity > 1.0f)
+            {
+                // Normalize color and use the max as intensity
+                light.color /= light.intensity;
+            }
+            else if (light.intensity < 0.01f)
+            {
+                // Very dim light, set to reasonable defaults
+                light.intensity = 1.0f;
+                light.color = glm::vec3(1.0f);
+            }
+
+            // Set range (for point and spot lights)
+            if (light.type != CachedLight::DIRECTIONAL)
+            {
+                // Calculate range from attenuation
+                float constant = std::max(0.001f, aiLight->mAttenuationConstant);
+                float linear = aiLight->mAttenuationLinear;
+                float quadratic = aiLight->mAttenuationQuadratic;
+
+                // Calculate range where light contribution drops to ~1% (0.01)
+                if (quadratic > 0.0001f)
+                {
+                    // Solve: intensity / (constant + linear*d + quadratic*d²) = 0.01
+                    // This gives us: quadratic*d² + linear*d + (constant - intensity/0.01) = 0
+                    float a = quadratic;
+                    float b = linear;
+                    float c = constant - (light.intensity / 0.01f);
+                    float discriminant = b * b - 4.0f * a * c;
+
+                    if (discriminant >= 0.0f)
+                    {
+                        light.range = (-b + sqrt(discriminant)) / (2.0f * a);
+                        light.range = std::max(0.1f, std::min(light.range, 1000.0f)); // Clamp to reasonable values
+                    }
+                    else
+                    {
+                        light.range = 100.0f; // Default if calculation fails
+                    }
+                }
+                else if (linear > 0.0001f)
+                {
+                    // Linear attenuation only: intensity / (constant + linear*d) = 0.01
+                    light.range = (light.intensity / 0.01f - constant) / linear;
+                    light.range = std::max(0.1f, std::min(light.range, 1000.0f));
+                }
+                else
+                {
+                    // Constant attenuation only - light doesn't fall off
+                    light.range = 100.0f; // Use default range
+                }
+            }
+
+            // Set cone angles for spot lights
+            if (light.type == CachedLight::SPOT)
+            {
+                light.innerCone = glm::degrees(aiLight->mAngleInnerCone);
+                light.outerCone = glm::degrees(aiLight->mAngleOuterCone);
+
+                // Ensure outer cone is larger than inner cone
+                if (light.outerCone <= light.innerCone)
+                {
+                    light.outerCone = light.innerCone + 5.0f; // Add 5 degree falloff
+                }
+            }
+
+            PREPATH_LOG_INFO("Light {}: pos({:.3f}, {:.3f}, {:.3f}), dir({:.3f}, {:.3f}, {:.3f}), color({:.3f}, {:.3f}, {:.3f}), intensity({:.3f})",
+                             i,
+                             light.position.x, light.position.y, light.position.z,
+                             light.direction.x, light.direction.y, light.direction.z,
+                             light.color.r, light.color.g, light.color.b,
+                             light.intensity);
+
+            lights.push_back(light);
+            break; // Found the light for this node, no need to continue searching
+        }
+    }
+
+    // Recursively process child nodes
+    for (unsigned int i = 0; i < node->mNumChildren; ++i)
+    {
+        findLightNodes(node->mChildren[i], scene, nodeTransform, lights);
+    }
+}
+
+// Updated extractLights function
+std::vector<CachedLight> extractLights(const aiScene *scene, const glm::mat4 &transform = glm::mat4(1.0f))
+{
+    std::vector<CachedLight> lights;
+
+    if (!scene->mRootNode)
+    {
+        PREPATH_LOG_WARN("Scene has no root node, cannot extract lights");
+        return lights;
+    }
+
+    PREPATH_LOG_INFO("Extracting {} lights from scene", scene->mNumLights);
+
+    // Traverse the scene graph to find light nodes
+    findLightNodes(scene->mRootNode, scene, transform, lights);
+
+    // If we didn't find any lights through node traversal, try the direct approach
+    // This handles cases where lights might not be properly associated with nodes
+    if (lights.empty() && scene->mNumLights > 0)
+    {
+        PREPATH_LOG_WARN("No lights found through scene graph traversal, trying direct extraction");
+
+        for (unsigned int i = 0; i < scene->mNumLights; ++i)
+        {
+            aiLight *aiLight = scene->mLights[i];
+            CachedLight light;
+
+            // Convert light type
+            switch (aiLight->mType)
+            {
+            case aiLightSource_DIRECTIONAL:
+                light.type = CachedLight::DIRECTIONAL;
+                break;
+            case aiLightSource_POINT:
+                light.type = CachedLight::POINT;
+                break;
+            case aiLightSource_SPOT:
+                light.type = CachedLight::SPOT;
+                break;
+            default:
+                continue;
+            }
+
+            // Use raw light data
+            glm::vec4 pos = transform * glm::vec4(aiLight->mPosition.x, aiLight->mPosition.y, aiLight->mPosition.z, 1.0f);
+            light.position = glm::vec3(pos);
+
+            glm::vec3 dir = glm::mat3(transform) * glm::vec3(aiLight->mDirection.x, aiLight->mDirection.y, aiLight->mDirection.z);
+            light.direction = glm::normalize(dir);
+
+            // Set color with fallbacks
+            light.color = glm::vec3(aiLight->mColorDiffuse.r, aiLight->mColorDiffuse.g, aiLight->mColorDiffuse.b);
+            if (light.color == glm::vec3(0.0f))
+            {
+                light.color = glm::vec3(1.0f); // Default to white
+            }
+
+            light.intensity = 1.0f;
+            light.range = 100.0f;
+
+            if (light.type == CachedLight::SPOT)
+            {
+                light.innerCone = glm::degrees(aiLight->mAngleInnerCone);
+                light.outerCone = glm::degrees(aiLight->mAngleOuterCone);
+            }
+
+            lights.push_back(light);
+        }
+    }
+
+    PREPATH_LOG_INFO("Successfully extracted {} lights", lights.size());
+    return lights;
 }
 
 // Extract ALL textures from materials, not just used ones
@@ -392,28 +722,6 @@ struct MeshData
     std::vector<glm::vec3> bitangents;
 };
 
-inline glm::mat4 convertAssimpMatrix(const aiMatrix4x4 &m)
-{
-    glm::mat4 result;
-    result[0][0] = m.a1;
-    result[1][0] = m.a2;
-    result[2][0] = m.a3;
-    result[3][0] = m.a4;
-    result[0][1] = m.b1;
-    result[1][1] = m.b2;
-    result[2][1] = m.b3;
-    result[3][1] = m.b4;
-    result[0][2] = m.c1;
-    result[1][2] = m.c2;
-    result[2][2] = m.c3;
-    result[3][2] = m.c4;
-    result[0][3] = m.d1;
-    result[1][3] = m.d2;
-    result[2][3] = m.d3;
-    result[3][3] = m.d4;
-    return result;
-}
-
 void processMesh(aiMesh *mesh,
                  aiMaterial *aiMat,
                  const glm::mat4 &transform,
@@ -495,7 +803,7 @@ void processNode(aiNode *node,
     }
 }
 
-std::vector<std::shared_ptr<Prepath::Mesh>> loadModelWithCache(const std::string &path)
+std::pair<std::vector<std::shared_ptr<Prepath::Mesh>>, std::vector<CachedLight>> loadModelWithCache(const std::string &path)
 {
     using namespace Prepath;
     namespace fs = std::filesystem;
@@ -530,7 +838,7 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModelWithCache(const std::string
             std::unordered_map<std::string, std::shared_ptr<Texture>> textureCache;
             for (const auto &texPath : cachedData.allTexturePaths)
             {
-                textureCache[texPath] = loadTexture(modelDir + texPath);
+                textureCache[texPath] = loadTexture(texPath);
             }
 
             // Create materials
@@ -576,7 +884,7 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModelWithCache(const std::string
                 meshes.push_back(mesh);
             }
 
-            return meshes;
+            return std::make_pair(meshes, cachedData.lights);
         }
     }
 
@@ -600,6 +908,11 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModelWithCache(const std::string
     // Extract ALL textures from the model
     cachedData.allTexturePaths = extractAllTextures(scene, modelDir);
     PREPATH_LOG_INFO("Found {} unique textures in model", cachedData.allTexturePaths.size());
+
+    // Extract ALL lights from the model
+    glm::mat4 rootTransform = convertAssimpMatrix(scene->mRootNode->mTransformation);
+    cachedData.lights = extractLights(scene, rootTransform);
+    PREPATH_LOG_INFO("Found {} lights in model", cachedData.lights.size());
 
     // Preload all textures
     std::unordered_map<std::string, std::shared_ptr<Texture>> textureCache;
@@ -674,5 +987,5 @@ std::vector<std::shared_ptr<Prepath::Mesh>> loadModelWithCache(const std::string
         PREPATH_LOG_WARN("Failed to write model cache: {}", cacheFile.c_str());
     }
 
-    return meshes;
+    return std::make_pair(meshes, cachedData.lights);
 }

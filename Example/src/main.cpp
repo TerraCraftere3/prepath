@@ -86,12 +86,12 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
     settings.cam.updateCameraVectors();
 }
 
-#define DEMO_IMPORT_SPONZA          // Sponza
-#define DEMO_IMPORT_SPONZA_CURTAINS // Curtains Sponza Addon
+#define DEMO_IMPORT_SPONZA // Sponza
+// #define DEMO_IMPORT_SPONZA_CURTAINS // Curtains Sponza Addon
 // #define DEMO_IMPORT_SPONZA_TREES    // Tree Sponza Addon
 // #define DEMO_IMPORT_SPONZA_IVY      // Ivy Sponza Addon
 // #define DEMO_IMPORT_SAN_MIGUEL      //
-#define DEMO_IMPORT_ERATO // Statue
+// #define DEMO_IMPORT_ERATO // Statue
 // #define DEMO_IMPORT_DRAGON // Dragon
 // #define DEMO_IMPORT_GALLERY // Gallery
 #define DEMO_ENABLE_GIZMOS // Gizmos
@@ -133,6 +133,8 @@ void printExtensions()
     printExtension("Gizmos", 1);
 #endif
 }
+
+#define VECTOR_APPEND(dst, src) ((dst).insert((dst).end(), (src).begin(), (src).end()))
 
 int main()
 {
@@ -182,13 +184,16 @@ int main()
     settings.cam.Position = glm::vec3(0, 1.5f, 4.0f);
     settings.cam.updateCameraVectors();
 
+    std::vector<CachedLight> cached_lights = {};
+
 #ifdef DEMO_ENABLE_GIZMOS
     auto light_gizmo = loadTexture("textures/gizmo_lightbulb.png");
 #endif
 
 #ifdef DEMO_IMPORT_SPONZA
     bool showSponza = true;
-    auto sponza_meshes = loadModelWithCache("models/NewSponza_Main_glTF_003.gltf");
+    auto [sponza_meshes, sponza_lights] = loadModelWithCache("models/NewSponza_Main_glTF_003.gltf");
+    VECTOR_APPEND(cached_lights, sponza_lights);
     for (auto mesh : sponza_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -198,7 +203,7 @@ int main()
 
 #ifdef DEMO_IMPORT_SPONZA_CURTAINS
     bool showCurtains = true;
-    auto curtains_meshes = loadModelWithCache("models/NewSponza_Curtains_glTF.gltf");
+    auto [curtains_meshes, curtains_lights] = loadModelWithCache("models/NewSponza_Curtains_glTF.gltf");
     for (auto mesh : curtains_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -209,7 +214,7 @@ int main()
 
 #ifdef DEMO_IMPORT_SPONZA_IVY
     bool showIvy = false;
-    auto ivy_meshes = loadModelWithCache("models/NewSponza_IvyGrowth_glTF.gltf");
+    auto [ivy_meshes, ivy_lights] = loadModelWithCache("models/NewSponza_IvyGrowth_glTF.gltf");
     for (auto mesh : ivy_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -220,7 +225,7 @@ int main()
 
 #ifdef DEMO_IMPORT_SPONZA_TREES
     bool showTree = false;
-    auto tree_meshes = loadModelWithCache("models/NewSponza_CypressTree_glTF.gltf");
+    auto [tree_meshes, tree_lights] = loadModelWithCache("models/NewSponza_CypressTree_glTF.gltf");
     for (auto mesh : tree_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -232,7 +237,8 @@ int main()
 
 #ifdef DEMO_IMPORT_SAN_MIGUEL
     bool showSanMiguel = false;
-    auto san_miguel_meshes = loadModelWithCache("models/san-miguel.gltf");
+    auto [san_miguel_meshes, san_miguel_lights] = loadModelWithCache("models/san-miguel.gltf");
+    VECTOR_APPEND(cached_lights, san_miguel_lights);
     for (auto mesh : san_miguel_meshes)
     {
         mesh->hidden = !showSanMiguel;
@@ -242,7 +248,7 @@ int main()
 
 #ifdef DEMO_IMPORT_ERATO
     bool showErato = false;
-    auto erato_meshes = loadModelWithCache("models/erato.obj");
+    auto [erato_meshes, erato_lights] = loadModelWithCache("models/erato.obj");
     for (auto mesh : erato_meshes)
     {
         mesh->modelMatrix = glm::scale(mesh->modelMatrix, glm::vec3(0.2f));
@@ -253,7 +259,8 @@ int main()
 
 #ifdef DEMO_IMPORT_GALLERY
     bool showGallery = false;
-    auto gallery_meshes = loadModelWithCache("models/gallery.obj");
+    auto [gallery_meshes, gallery_lights] = loadModelWithCache("models/gallery.obj");
+    VECTOR_APPEND(cached_lights, gallery_lights);
     for (auto mesh : gallery_meshes)
     {
         mesh->hidden = !showGallery;
@@ -270,7 +277,8 @@ int main()
     dragon_mat->ao = loadTexture("models/textures/marble_0017_ao_2k.jpg");
     dragon_mat->tint = glm::vec3(152.0f / 255.0f, 241.0f / 255.0f, 115.0f / 255.0f);
 
-    auto dragon_meshes = loadModelWithCache("models/StandfordDragon.obj");
+    auto [dragon_meshes, dragon_lights] = loadModelWithCache("models/StandfordDragon.obj");
+    VECTOR_APPEND(cached_lights, dragon_lights);
     for (auto mesh : dragon_meshes)
     {
         mesh->material = dragon_mat;
@@ -330,6 +338,7 @@ int main()
         ImGui::Text("Yaw: %.1f, Pitch: %.1f", settings.cam.Yaw, settings.cam.Pitch);
         ImGui::Text("Position: %.1f, %.1f, %.1f", settings.cam.Position.x, settings.cam.Position.y, settings.cam.Position.z);
         ImGui::SeparatorText("Scene");
+        ImGui::Text("Lights: %d", cached_lights.size());
 #ifdef DEMO_IMPORT_SPONZA
         if (ImGui::Checkbox("Show Sponza", &showSponza))
         {
@@ -459,6 +468,44 @@ int main()
             ImGui::PopID();
             meshIndex++;
         }
+        int lightIndex = 0;
+        for (auto &light : cached_lights)
+        {
+            ImGui::PushID(lightIndex);
+            std::string typeName = "";
+            switch (light.type)
+            {
+            case CachedLight::Type::SPOT:
+                typeName = "Spot";
+                break;
+            case CachedLight::Type::DIRECTIONAL:
+                typeName = "Directional";
+                break;
+            case CachedLight::Type::POINT:
+                typeName = "Point";
+                break;
+            }
+            if (ImGui::TreeNode("Light", "%s Light (%.0f, %.0f, %.0f)", typeName.c_str(), light.color.r * 255, light.color.g * 255, light.color.b * 255))
+            {
+                ImGui::Text("Color: %.0f, %.0f, %.0f", light.color.r * 255, light.color.g * 255, light.color.b * 255);
+                ImGui::Text("Intensity: %.3f", light.intensity);
+                ImGui::Text("Position: %.3f, %.3f, %.3f", light.position.x, light.position.y, light.position.z);
+                if (light.type == CachedLight::Type::DIRECTIONAL || light.type == CachedLight::Type::SPOT)
+                    ImGui::Text("Direction: %.3f, %.3f, %.3f", light.direction.x, light.direction.y, light.direction.z);
+                if (light.type == CachedLight::Type::POINT || light.type == CachedLight::Type::SPOT)
+                    ImGui::Text("Range: %.3f", light.range);
+                if (light.type == CachedLight::Type::SPOT)
+                {
+                    ImGui::Text("Outer Cone: %.3f", light.outerCone);
+                    ImGui::Text("Inner Cone: %.3f", light.innerCone);
+                }
+
+                ImGui::TreePop();
+            }
+
+            ImGui::PopID();
+            lightIndex++;
+        }
         ImGui::SeparatorText("Shadows");
         ImGui::DragFloat3("Light Direction", glm::value_ptr(scene.lightDir), 0.1f, -1.0f, 1.0f);
         ImGui::Image(renderer.getDepthTex(), ImVec2(256, 256), ImVec2(0, 1), ImVec2(1, 0));
@@ -474,7 +521,11 @@ int main()
         // ---- Render Code ----
         renderer.render(scene, settings);
 #ifdef DEMO_ENABLE_GIZMOS
-        renderer.renderGizmo(light_gizmo, glm::vec3(0.0f, 1.0f, 0.0f));
+        for (auto cached_light : cached_lights)
+        {
+            if (cached_light.type == CachedLight::Type::POINT)
+                renderer.renderGizmo(light_gizmo, cached_light.position, cached_light.color);
+        }
 #endif
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

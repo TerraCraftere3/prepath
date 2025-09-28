@@ -68,8 +68,9 @@ namespace Prepath
     {
     }
 
-    void Renderer::renderGizmo(std::shared_ptr<Texture> texture, const glm::vec3 &position)
+    void Renderer::renderGizmo(std::shared_ptr<Texture> texture, const glm::vec3 &position, const glm::vec3 &tint)
     {
+        glDisable(GL_DEPTH_TEST);
         glm::mat4 view = m_LastView;
         glm::mat4 projection = m_LastProjection;
 
@@ -88,13 +89,14 @@ namespace Prepath
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture->getID());
         m_GizmoShader->setUniform1i("uTexture", 0);
-        m_GizmoShader->setUniform3f("uTint", glm::vec3(1.0f));
+        m_GizmoShader->setUniform3f("uTint", tint);
 
         m_GizmoMesh->draw();
 
         m_Statistics.drawCallCount += m_GizmoMesh->getDrawCallCount();
         m_Statistics.triangleCount += m_GizmoMesh->getTriangleCount();
         m_Statistics.vertexCount += m_GizmoMesh->getVertexCount();
+        glEnable(GL_DEPTH_TEST);
     }
 
     void Renderer::render(const Scene &scene, const RenderSettings &settings)
