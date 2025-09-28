@@ -10,6 +10,9 @@ namespace Prepath
 {
     Renderer::Renderer()
     {
+        unsigned char whiteData[3] = {255, 255, 255}; // white
+        m_WhiteTex = Texture::generateTexture(whiteData, 1, 1, 3);
+
         m_Shader = Shader::generateShader(PREPATH_READ_SHADER("default.vert").c_str(), PREPATH_READ_SHADER("default.frag").c_str());
         m_DepthShader = Shader::generateShader(PREPATH_READ_SHADER("depth.vert").c_str(), PREPATH_READ_SHADER("depth.frag").c_str());
         m_BoundsShader = Shader::generateShader(PREPATH_READ_SHADER("bounds.vert").c_str(), PREPATH_READ_SHADER("bounds.frag").c_str());
@@ -46,6 +49,7 @@ namespace Prepath
                 {0.0f, 1.0f}, // tri 2
                 {1.0f, 0.0f},
                 {0.0f, 0.0f}});
+        m_SphereMesh = Mesh::generateSphere(1.0f);
 
         glGenFramebuffers(1, &m_DepthFBO);
         glGenTextures(1, &m_DepthTex);
@@ -99,6 +103,34 @@ namespace Prepath
         glEnable(GL_DEPTH_TEST);
     }
 
+    void Renderer::renderGizmoSphere(const glm::vec3 &position, const float &size, const glm::vec3 &tint)
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+        glm::mat4 view = m_LastView;
+        glm::mat4 projection = m_LastProjection;
+
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), position);
+        model = glm::scale(model, glm::vec3(size));
+
+        m_GizmoShader->bind();
+        m_GizmoShader->setUniformMat4f("uView", view);
+        m_GizmoShader->setUniformMat4f("uProjection", projection);
+        m_GizmoShader->setUniformMat4f("uModel", model);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_WhiteTex->getID());
+        m_GizmoShader->setUniform1i("uTexture", 0);
+        m_GizmoShader->setUniform3f("uTint", tint);
+
+        m_SphereMesh->draw();
+
+        m_Statistics.drawCallCount += m_GizmoMesh->getDrawCallCount();
+        m_Statistics.triangleCount += m_GizmoMesh->getTriangleCount();
+        m_Statistics.vertexCount += m_GizmoMesh->getVertexCount();
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
     void Renderer::render(const Scene &scene, const RenderSettings &settings)
     {
         // Depth
@@ -143,6 +175,7 @@ namespace Prepath
         glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
         // ---- SHADOWS ----
+        if (scene.hasSkyLight)
         {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glViewport(0, 0, PREPATH_SHADOWMAP_SIZE, PREPATH_SHADOWMAP_SIZE);
@@ -244,6 +277,7 @@ namespace Prepath
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_DepthTex);
         shader->setUniform1i("uDepthMap", 0);
+        shader->setUniform1i("uSkyLight", scene.hasSkyLight);
         shader->setUniform1i("uDebugTexture", uDebugTexture);
         shader->setUniform3f("uCameraPos", uCameraPos);
 

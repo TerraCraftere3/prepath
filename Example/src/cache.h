@@ -803,7 +803,7 @@ void processNode(aiNode *node,
     }
 }
 
-std::pair<std::vector<std::shared_ptr<Prepath::Mesh>>, std::vector<CachedLight>> loadModelWithCache(const std::string &path)
+std::pair<std::vector<std::shared_ptr<Prepath::Mesh>>, std::vector<std::shared_ptr<Prepath::PointLight>>> loadModelWithCache(const std::string &path)
 {
     using namespace Prepath;
     namespace fs = std::filesystem;
@@ -821,6 +821,7 @@ std::pair<std::vector<std::shared_ptr<Prepath::Mesh>>, std::vector<CachedLight>>
     }
 
     CachedModelData cachedData;
+    std::vector<std::shared_ptr<PointLight>> lights;
     std::vector<std::shared_ptr<Mesh>> meshes;
 
     if (useCache)
@@ -884,7 +885,21 @@ std::pair<std::vector<std::shared_ptr<Prepath::Mesh>>, std::vector<CachedLight>>
                 meshes.push_back(mesh);
             }
 
-            return std::make_pair(meshes, cachedData.lights);
+            lights.reserve(cachedData.lights.size());
+            for (const auto &cachedLight : cachedData.lights)
+            {
+                if (cachedLight.type == CachedLight::Type::POINT)
+                {
+                    auto light = Light::generatePointLight();
+                    light->color = cachedLight.color;
+                    light->range = cachedLight.range;
+                    light->position = cachedLight.position;
+                    light->intensity = cachedLight.intensity;
+                    lights.push_back(light);
+                }
+            }
+
+            return std::make_pair(meshes, lights);
         }
     }
 
@@ -912,6 +927,19 @@ std::pair<std::vector<std::shared_ptr<Prepath::Mesh>>, std::vector<CachedLight>>
     // Extract ALL lights from the model
     glm::mat4 rootTransform = convertAssimpMatrix(scene->mRootNode->mTransformation);
     cachedData.lights = extractLights(scene, rootTransform);
+    lights.reserve(cachedData.lights.size());
+    for (const auto &cachedLight : cachedData.lights)
+    {
+        if (cachedLight.type == CachedLight::Type::POINT)
+        {
+            auto light = Light::generatePointLight();
+            light->color = cachedLight.color;
+            light->range = cachedLight.range;
+            light->position = cachedLight.position;
+            light->intensity = cachedLight.intensity;
+            lights.push_back(light);
+        }
+    }
     PREPATH_LOG_INFO("Found {} lights in model", cachedData.lights.size());
 
     // Preload all textures
@@ -987,5 +1015,5 @@ std::pair<std::vector<std::shared_ptr<Prepath::Mesh>>, std::vector<CachedLight>>
         PREPATH_LOG_WARN("Failed to write model cache: {}", cacheFile.c_str());
     }
 
-    return std::make_pair(meshes, cachedData.lights);
+    return std::make_pair(meshes, lights);
 }

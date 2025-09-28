@@ -4,6 +4,7 @@
 #include "Error.h"
 #include "Renderer.h"
 #include "Scene.h"
+#include "Light.h"
 #include "Mesh.h"
 #include "Camera.h"
 #include "Shader.h"

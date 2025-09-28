@@ -36,6 +36,7 @@ namespace Prepath
             const std::vector<glm::vec3> *bitangentsIn = nullptr);
         static std::shared_ptr<Mesh> generateCube(float size = 1.0f);
         static std::shared_ptr<Mesh> generateQuad(float width = 1.0f, float height = 1.0f);
+        static std::shared_ptr<Mesh> generateSphere(float radius, int latSegments = 16, int lonSegments = 32);
 
         // ---- Statistics Methods ----
         GLsizei getVertexCount() const { return vertexCount; }

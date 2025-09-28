@@ -4,11 +4,11 @@ namespace Prepath
 {
     Scene::Scene()
     {
-        static unsigned char skyBlue[3] = {135, 206, 235};
+        static unsigned char skyDefault[3] = {0, 0, 0};
 
         unsigned char *faces[6] = {
-            skyBlue, skyBlue, skyBlue,
-            skyBlue, skyBlue, skyBlue};
+            skyDefault, skyDefault, skyDefault,
+            skyDefault, skyDefault, skyDefault};
 
         skybox = Cubemap::generateTexture(faces, 1, 1, 3);
     }

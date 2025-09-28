@@ -12,6 +12,8 @@ uniform sampler2D uRoughnessMap;
 uniform sampler2D uMetallicMap;
 uniform sampler2D uAOMap;
 
+uniform bool uSkyLight;
+
 uniform int uDebugTexture; // 0 = normal render, >0 = debug view
 
 in vec3 WorldPos;
@@ -23,23 +25,27 @@ flat in int vTriangleID;
 // ----------------------------------------------------------------------------
 // Shadow Calculation with PCF
 float ShadowCalculationPCF(vec4 fragPosLightSpace) {
-  vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-  projCoords = projCoords * 0.5 + 0.5;
-  if(projCoords.z > 1.0)
-    return 0.0;
+  if(uSkyLight) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if(projCoords.z > 1.0)
+      return 0.0;
 
-  float currentDepth = projCoords.z;
-  float bias = 0.005; // Simple fixed bias
+    float currentDepth = projCoords.z;
+    float bias = 0.005; // Simple fixed bias
 
-  float shadow = 0.0;
-  vec2 texelSize = 1.0 / textureSize(uDepthMap, 0);
-  for(int x = -1; x <= 1; ++x) {
-    for(int y = -1; y <= 1; ++y) {
-      float pcfDepth = texture(uDepthMap, projCoords.xy + vec2(x, y) * texelSize).r;
-      shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(uDepthMap, 0);
+    for(int x = -1; x <= 1; ++x) {
+      for(int y = -1; y <= 1; ++y) {
+        float pcfDepth = texture(uDepthMap, projCoords.xy + vec2(x, y) * texelSize).r;
+        shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+      }
     }
+    return shadow / 9.0;
+  } else {
+    return 1.0; // SHADOW EVERYWHERE
   }
-  return shadow / 9.0;
 }
 
 // ----------------------------------------------------------------------------
@@ -117,7 +123,7 @@ void main() {
   }
   if(uDebugTexture == 7) {
     float shadow = ShadowCalculationPCF(WorldPosLightSpace);
-    FragColor = vec4(vec3(shadow), 1.0);
+    FragColor = vec4(vec3(1 - shadow), 1.0);
     return;
   }
   if(uDebugTexture == 8) {

@@ -86,8 +86,8 @@ void processInput(Prepath::RenderSettings &settings, float deltaTime)
     settings.cam.updateCameraVectors();
 }
 
-#define DEMO_IMPORT_SPONZA // Sponza
-// #define DEMO_IMPORT_SPONZA_CURTAINS // Curtains Sponza Addon
+#define DEMO_IMPORT_SPONZA          // Sponza
+#define DEMO_IMPORT_SPONZA_CURTAINS // Curtains Sponza Addon
 // #define DEMO_IMPORT_SPONZA_TREES    // Tree Sponza Addon
 // #define DEMO_IMPORT_SPONZA_IVY      // Ivy Sponza Addon
 // #define DEMO_IMPORT_SAN_MIGUEL      //
@@ -136,6 +136,11 @@ void printExtensions()
 
 #define VECTOR_APPEND(dst, src) ((dst).insert((dst).end(), (src).begin(), (src).end()))
 
+#define RANDOM_COLOR() glm::vec3(          \
+    static_cast<float>(rand()) / RAND_MAX, \
+    static_cast<float>(rand()) / RAND_MAX, \
+    static_cast<float>(rand()) / RAND_MAX)
+
 int main()
 {
     // ---- INIT CODE ----
@@ -166,25 +171,28 @@ int main()
                   { spdlog::critical("{}", msg); });
     ctx.setShaderPath("shader");
 
+#ifdef _WIN32
+    ImFont *font = io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/SegoeUI.ttf", 18.0f);
+    io.FontDefault = font;
+#endif
+
     printExtensions();
 
     // ---- DEMO SETUP ----
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
-    std::vector<std::string> faces{
+    /*std::vector<std::string> faces{
         "models/textures/right.jpg",
         "models/textures/left.jpg",
         "models/textures/top.jpg",
         "models/textures/bottom.jpg",
         "models/textures/front.jpg",
         "models/textures/back.jpg"};
-    scene.skybox = loadSkybox(faces);
+    scene.skybox = loadSkybox(faces);*/
     auto settings = Prepath::RenderSettings();
     settings.culling = false;
     settings.cam.Position = glm::vec3(0, 1.5f, 4.0f);
     settings.cam.updateCameraVectors();
-
-    std::vector<CachedLight> cached_lights = {};
 
 #ifdef DEMO_ENABLE_GIZMOS
     auto light_gizmo = loadTexture("textures/gizmo_lightbulb.png");
@@ -193,7 +201,12 @@ int main()
 #ifdef DEMO_IMPORT_SPONZA
     bool showSponza = true;
     auto [sponza_meshes, sponza_lights] = loadModelWithCache("models/NewSponza_Main_glTF_003.gltf");
-    VECTOR_APPEND(cached_lights, sponza_lights);
+    for (auto light : sponza_lights)
+    {
+        light->hidden = !showSponza;
+        light->color = RANDOM_COLOR();
+        scene.addPointLight(light);
+    }
     for (auto mesh : sponza_meshes)
     {
         mesh->modelMatrix = glm::rotate(mesh->modelMatrix, glm::radians(-90.0f), glm::vec3(.0f, 1.0f, .0f));
@@ -338,12 +351,15 @@ int main()
         ImGui::Text("Yaw: %.1f, Pitch: %.1f", settings.cam.Yaw, settings.cam.Pitch);
         ImGui::Text("Position: %.1f, %.1f, %.1f", settings.cam.Position.x, settings.cam.Position.y, settings.cam.Position.z);
         ImGui::SeparatorText("Scene");
-        ImGui::Text("Lights: %d", cached_lights.size());
+        ImGui::Checkbox("Has Skylight", &scene.hasSkyLight);
+        ImGui::Text("Lights: %d", scene.getPointLights().size());
 #ifdef DEMO_IMPORT_SPONZA
         if (ImGui::Checkbox("Show Sponza", &showSponza))
         {
             for (auto mesh : sponza_meshes)
                 mesh->hidden = !showSponza;
+            for (auto light : sponza_lights)
+                light->hidden = !showSponza;
             if (!showSponza)
             {
 #ifdef DEMO_IMPORT_SPONZA_CURTAINS
@@ -469,39 +485,22 @@ int main()
             meshIndex++;
         }
         int lightIndex = 0;
-        for (auto &light : cached_lights)
+        for (auto &light : scene.getPointLights())
         {
             ImGui::PushID(lightIndex);
-            std::string typeName = "";
-            switch (light.type)
+            if (light->hidden)
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+            if (ImGui::TreeNode("Light", "Light (%.0f, %.0f, %.0f)", light->color.r * 255, light->color.g * 255, light->color.b * 255))
             {
-            case CachedLight::Type::SPOT:
-                typeName = "Spot";
-                break;
-            case CachedLight::Type::DIRECTIONAL:
-                typeName = "Directional";
-                break;
-            case CachedLight::Type::POINT:
-                typeName = "Point";
-                break;
-            }
-            if (ImGui::TreeNode("Light", "%s Light (%.0f, %.0f, %.0f)", typeName.c_str(), light.color.r * 255, light.color.g * 255, light.color.b * 255))
-            {
-                ImGui::Text("Color: %.0f, %.0f, %.0f", light.color.r * 255, light.color.g * 255, light.color.b * 255);
-                ImGui::Text("Intensity: %.3f", light.intensity);
-                ImGui::Text("Position: %.3f, %.3f, %.3f", light.position.x, light.position.y, light.position.z);
-                if (light.type == CachedLight::Type::DIRECTIONAL || light.type == CachedLight::Type::SPOT)
-                    ImGui::Text("Direction: %.3f, %.3f, %.3f", light.direction.x, light.direction.y, light.direction.z);
-                if (light.type == CachedLight::Type::POINT || light.type == CachedLight::Type::SPOT)
-                    ImGui::Text("Range: %.3f", light.range);
-                if (light.type == CachedLight::Type::SPOT)
-                {
-                    ImGui::Text("Outer Cone: %.3f", light.outerCone);
-                    ImGui::Text("Inner Cone: %.3f", light.innerCone);
-                }
+                ImGui::ColorEdit3("Position", glm::value_ptr(light->position));
+                ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
+                ImGui::DragFloat("Intensity", &light->intensity, 0.3f, 1.0f);
+                ImGui::DragFloat("Range", &light->range, 0.3f, 1.0f);
 
                 ImGui::TreePop();
             }
+            if (light->hidden)
+                ImGui::PopStyleColor();
 
             ImGui::PopID();
             lightIndex++;
@@ -521,10 +520,13 @@ int main()
         // ---- Render Code ----
         renderer.render(scene, settings);
 #ifdef DEMO_ENABLE_GIZMOS
-        for (auto cached_light : cached_lights)
+        for (auto light : scene.getPointLights())
         {
-            if (cached_light.type == CachedLight::Type::POINT)
-                renderer.renderGizmo(light_gizmo, cached_light.position, cached_light.color);
+            if (!light->hidden)
+            {
+                renderer.renderGizmo(light_gizmo, light->position, light->color);
+                // renderer.renderGizmoSphere(light->position, light->range, light->color);
+            }
         }
 #endif
 

@@ -323,4 +323,60 @@ namespace Prepath
         return generateMesh(positions, normals, texCoords);
     }
 
+    std::shared_ptr<Mesh> Mesh::generateSphere(float radius, int latSegments, int lonSegments)
+    {
+        std::vector<glm::vec3> positions;
+        std::vector<glm::vec3> normals;
+        std::vector<glm::vec2> texCoords;
+
+        for (int lat = 0; lat < latSegments; ++lat)
+        {
+            float theta1 = (float)lat / latSegments * glm::pi<float>();
+            float theta2 = (float)(lat + 1) / latSegments * glm::pi<float>();
+
+            for (int lon = 0; lon < lonSegments; ++lon)
+            {
+                float phi1 = (float)lon / lonSegments * 2.0f * glm::pi<float>();
+                float phi2 = (float)(lon + 1) / lonSegments * 2.0f * glm::pi<float>();
+
+                // Vertices
+                glm::vec3 v1(
+                    radius * sin(theta1) * cos(phi1),
+                    radius * cos(theta1),
+                    radius * sin(theta1) * sin(phi1));
+                glm::vec3 v2(
+                    radius * sin(theta2) * cos(phi1),
+                    radius * cos(theta2),
+                    radius * sin(theta2) * sin(phi1));
+                glm::vec3 v3(
+                    radius * sin(theta2) * cos(phi2),
+                    radius * cos(theta2),
+                    radius * sin(theta2) * sin(phi2));
+                glm::vec3 v4(
+                    radius * sin(theta1) * cos(phi2),
+                    radius * cos(theta1),
+                    radius * sin(theta1) * sin(phi2));
+
+                // Normals
+                glm::vec3 n1 = glm::normalize(v1);
+                glm::vec3 n2 = glm::normalize(v2);
+                glm::vec3 n3 = glm::normalize(v3);
+                glm::vec3 n4 = glm::normalize(v4);
+
+                // Texture coordinates
+                glm::vec2 t1((float)lon / lonSegments, (float)lat / latSegments);
+                glm::vec2 t2((float)lon / lonSegments, (float)(lat + 1) / latSegments);
+                glm::vec2 t3((float)(lon + 1) / lonSegments, (float)(lat + 1) / latSegments);
+                glm::vec2 t4((float)(lon + 1) / lonSegments, (float)lat / latSegments);
+
+                // Two triangles per quad
+                positions.insert(positions.end(), {v1, v2, v3, v1, v3, v4});
+                normals.insert(normals.end(), {n1, n2, n3, n1, n3, n4});
+                texCoords.insert(texCoords.end(), {t1, t2, t3, t1, t3, t4});
+            }
+        }
+
+        return generateMesh(positions, normals, texCoords);
+    }
+
 }
