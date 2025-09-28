@@ -59,7 +59,7 @@ namespace Prepath
             return (std::filesystem::path(m_ShaderPath) / inputName).string();
         }
 
-        inline std::string readShader(const std::string &inputName)
+        std::string readShader(const std::string &inputName)
         {
             std::string filePath = getShaderPath(inputName);
             std::ifstream file(filePath, std::ios::in | std::ios::binary);
@@ -93,3 +93,5 @@ namespace Prepath
 
 #define PREPATH_GET_SHADER(path) ::Prepath::Context::getGlobalContext().getShaderPath(path)
 #define PREPATH_READ_SHADER(path) ::Prepath::Context::getGlobalContext().readShader(path)
+#define PREPATH_GENERATE_SHADERVF(vertexPath, fragmentPath) Shader::generateShader(PREPATH_READ_SHADER(vertexPath).c_str(), PREPATH_READ_SHADER(fragmentPath).c_str())
+#define PREPATH_GENERATE_SHADERVGF(vertexPath, geometryPath, fragmentPath) Shader::generateShader(PREPATH_READ_SHADER(vertexPath).c_str(), PREPATH_READ_SHADER(geometryPath).c_str(), PREPATH_READ_SHADER(fragmentPath).c_str())

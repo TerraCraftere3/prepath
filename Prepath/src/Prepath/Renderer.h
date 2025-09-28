@@ -49,7 +49,8 @@ namespace Prepath
         RenderStatistics m_Statistics;
         std::shared_ptr<Texture> m_WhiteTex;
         std::shared_ptr<Shader> m_Shader;
-        std::shared_ptr<Shader> m_DepthShader;
+        std::shared_ptr<Shader> m_DirectionalLightShader;
+        std::shared_ptr<Shader> m_PointLightShader;
         std::shared_ptr<Shader> m_BoundsShader;
         std::shared_ptr<Shader> m_SkyboxShader;
         std::shared_ptr<Shader> m_GizmoShader;

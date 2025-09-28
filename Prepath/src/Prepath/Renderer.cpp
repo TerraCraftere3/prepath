@@ -13,11 +13,12 @@ namespace Prepath
         unsigned char whiteData[3] = {255, 255, 255}; // white
         m_WhiteTex = Texture::generateTexture(whiteData, 1, 1, 3);
 
-        m_Shader = Shader::generateShader(PREPATH_READ_SHADER("default.vert").c_str(), PREPATH_READ_SHADER("default.frag").c_str());
-        m_DepthShader = Shader::generateShader(PREPATH_READ_SHADER("depth.vert").c_str(), PREPATH_READ_SHADER("depth.frag").c_str());
-        m_BoundsShader = Shader::generateShader(PREPATH_READ_SHADER("bounds.vert").c_str(), PREPATH_READ_SHADER("bounds.frag").c_str());
-        m_SkyboxShader = Shader::generateShader(PREPATH_READ_SHADER("skybox.vert").c_str(), PREPATH_READ_SHADER("skybox.frag").c_str());
-        m_GizmoShader = Shader::generateShader(PREPATH_READ_SHADER("gizmo.vert").c_str(), PREPATH_READ_SHADER("gizmo.frag").c_str());
+        m_Shader = PREPATH_GENERATE_SHADERVF("default.vert", "default.frag");
+        m_DirectionalLightShader = PREPATH_GENERATE_SHADERVF("depth.vert", "depth.frag");
+        m_PointLightShader = PREPATH_GENERATE_SHADERVGF("pointlight.vert", "pointlight.geom", "pointlight.frag");
+        m_BoundsShader = PREPATH_GENERATE_SHADERVF("bounds.vert", "bounds.frag");
+        m_SkyboxShader = PREPATH_GENERATE_SHADERVF("skybox.vert", "skybox.frag");
+        m_GizmoShader = PREPATH_GENERATE_SHADERVF("gizmo.vert", "gizmo.frag");
 
         m_BoundsMesh = Mesh::generateCube(0.5f);
         m_SkyboxMesh = Mesh::generateCube(1.0f);
@@ -184,7 +185,7 @@ namespace Prepath
             glEnable(GL_CULL_FACE);
             glCullFace(GL_FRONT);
             glFrontFace(GL_CCW);
-            renderScene(scene, projection, view, lightSpaceMatrix, m_DepthShader);
+            renderScene(scene, projection, view, lightSpaceMatrix, m_DirectionalLightShader);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
@@ -192,25 +193,25 @@ namespace Prepath
         for (auto light : scene.getPointLights())
         {
             float aspect = (float)PREPATH_SHADOWMAP_SIZE / (float)PREPATH_SHADOWMAP_SIZE;
-            float near = 1.0f;
-            float far = 25.0f;
-            auto lightPos = light->position;
-            glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, near, far);
-            std::vector<glm::mat4> shadowTransforms;
-            shadowTransforms.push_back(shadowProj *
-                                       glm::lookAt(lightPos, lightPos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
-            shadowTransforms.push_back(shadowProj *
-                                       glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
-            shadowTransforms.push_back(shadowProj *
-                                       glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
-            shadowTransforms.push_back(shadowProj *
-                                       glm::lookAt(lightPos, lightPos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
-            shadowTransforms.push_back(shadowProj *
-                                       glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
-            shadowTransforms.push_back(shadowProj *
-                                       glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
+            float near = 0.1f;
+            float far = light->range;
+            auto pointLightPos = light->position;
+            glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f, 1.0f, light->range);
+
+            std::vector<glm::mat4> shadowTransforms = {
+                shadowProj * glm::lookAt(pointLightPos, pointLightPos + glm::vec3(1, 0, 0), glm::vec3(0, -1, 0)),  // +X
+                shadowProj * glm::lookAt(pointLightPos, pointLightPos + glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0)), // -X
+                shadowProj * glm::lookAt(pointLightPos, pointLightPos + glm::vec3(0, 1, 0), glm::vec3(0, 0, 1)),   // +Y
+                shadowProj * glm::lookAt(pointLightPos, pointLightPos + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1)), // -Y
+                shadowProj * glm::lookAt(pointLightPos, pointLightPos + glm::vec3(0, 0, 1), glm::vec3(0, -1, 0)),  // +Z
+                shadowProj * glm::lookAt(pointLightPos, pointLightPos + glm::vec3(0, 0, -1), glm::vec3(0, -1, 0))  // -Z
+            };
             glBindFramebuffer(GL_FRAMEBUFFER, light->m_DepthFramebuffer);
-            glClear(GL_DEPTH_BUFFER_BIT);
+            auto NULL_MATRIX = glm::mat4(0.0f);
+            m_PointLightShader->bind();
+            m_PointLightShader->setUniformMat4fArray("uShadowMatrices", shadowTransforms);
+            m_PointLightShader->setUniform1f("uRange", light->range);
+            renderScene(scene, NULL_MATRIX, NULL_MATRIX, NULL_MATRIX, m_PointLightShader, light->position, 0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 

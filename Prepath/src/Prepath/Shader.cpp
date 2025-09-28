@@ -46,6 +46,34 @@ namespace Prepath
         return program;
     }
 
+    GLuint createShaderProgram(const char *vertexSource, const char *geometrySource, const char *fragmentSource)
+    {
+        GLuint vertex = compileShader(GL_VERTEX_SHADER, vertexSource);
+        GLuint geometry = compileShader(GL_GEOMETRY_SHADER, geometrySource);
+        GLuint fragment = compileShader(GL_FRAGMENT_SHADER, fragmentSource);
+
+        GLuint program = glCreateProgram();
+        glAttachShader(program, vertex);
+        glAttachShader(program, geometry);
+        glAttachShader(program, fragment);
+        glLinkProgram(program);
+
+        GLint success;
+        glGetProgramiv(program, GL_LINK_STATUS, &success);
+        if (!success)
+        {
+            char infoLog[512];
+            glGetProgramInfoLog(program, 512, nullptr, infoLog);
+            PREPATH_LOG_ERROR("Shader linking error: {}", infoLog);
+        }
+
+        glDeleteShader(vertex);
+        glDeleteShader(geometry);
+        glDeleteShader(fragment);
+
+        return program;
+    }
+
     Shader::Shader() {}
     Shader::~Shader()
     {
@@ -64,10 +92,23 @@ namespace Prepath
         shader->setupShader(vertexSource, fragmentSource);
         return shader;
     }
+
+    std::shared_ptr<Shader> Shader::generateShader(const char *vertexSource, const char *geometrySource, const char *fragmentSource)
+    {
+        auto shader = std::make_shared<Shader>();
+        shader->setupShader(vertexSource, geometrySource, fragmentSource);
+        return shader;
+    }
+
     void Shader::setupShader(const char *vertexSource,
                              const char *fragmentSource)
     {
         m_ShaderProgram = createShaderProgram(vertexSource, fragmentSource);
+    }
+
+    void Shader::setupShader(const char *vertexSource, const char *geometrySource, const char *fragmentSource)
+    {
+        m_ShaderProgram = createShaderProgram(vertexSource, geometrySource, fragmentSource);
     }
 
     GLint Shader::getUniformLocation(const std::string &name) const
@@ -134,5 +175,10 @@ namespace Prepath
     void Shader::setUniformMat4f(const std::string &name, const glm::mat4 &matrix)
     {
         glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, glm::value_ptr(matrix));
+    }
+
+    void Shader::setUniformMat4fArray(const std::string &name, const std::vector<glm::mat4> &matrices)
+    {
+        glUniformMatrix4fv(getUniformLocation(name), static_cast<GLsizei>(matrices.size()), GL_FALSE, glm::value_ptr(matrices[0]));
     }
 } // namespace Prepath

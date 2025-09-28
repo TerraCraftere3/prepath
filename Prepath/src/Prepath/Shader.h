@@ -17,6 +17,7 @@ namespace Prepath
         void bind();
 
         static std::shared_ptr<Shader> generateShader(const char *vertexSource, const char *fragmentSource);
+        static std::shared_ptr<Shader> generateShader(const char *vertexSource, const char *geometrySource, const char *fragmentSource);
 
         void setUniform1i(const std::string &name, int value);
         void setUniform1f(const std::string &name, float value);
@@ -28,10 +29,12 @@ namespace Prepath
         void setUniform4f(const std::string &name, float x, float y, float z, float w);
         void setUniformMat3f(const std::string &name, const glm::mat3 &matrix);
         void setUniformMat4f(const std::string &name, const glm::mat4 &matrix);
+        void setUniformMat4fArray(const std::string &name, const std::vector<glm::mat4> &matrices);
 
     private:
         GLint getUniformLocation(const std::string &name) const;
         void setupShader(const char *vertexSource, const char *fragmentSource);
+        void setupShader(const char *vertexSource, const char *geometrySource, const char *fragmentSource);
 
     private:
         mutable std::unordered_map<std::string, GLint> m_UniformLocationCache;

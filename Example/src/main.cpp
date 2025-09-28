@@ -181,14 +181,14 @@ int main()
     // ---- DEMO SETUP ----
     auto renderer = Prepath::Renderer();
     auto scene = Prepath::Scene();
-    std::vector<std::string> faces{
+    /*std::vector<std::string> faces{
         "models/textures/right.jpg",
         "models/textures/left.jpg",
         "models/textures/top.jpg",
         "models/textures/bottom.jpg",
         "models/textures/front.jpg",
         "models/textures/back.jpg"};
-    scene.skybox = loadSkybox(faces);
+    scene.skybox = loadSkybox(faces);*/
     auto settings = Prepath::RenderSettings();
     settings.culling = false;
     settings.cam.Position = glm::vec3(0, 1.5f, 4.0f);
